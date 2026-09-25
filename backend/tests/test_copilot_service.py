@@ -132,3 +132,41 @@ def test_copilot_image_diagnosis_tool():
 
     # Reset tier back to free
     _system_settings_state["active_tier"] = "free"
+
+
+def test_copilot_knows_class_marks_and_schedule():
+    """Verifies that Copilot prompt contains live database ground truth: marks, average score, topics, timetable."""
+    from unittest.mock import patch
+    from backend.app.agents.model_client import model_client
+
+    _system_settings_state["active_tier"] = "local"
+    captured_prompts = []
+
+    def mock_gen(*args, **kwargs):
+        prompt = kwargs.get("prompt") or (args[0] if args else "")
+        captured_prompts.append(prompt)
+        return "Class 11-A average score is 61% based on database performance records."
+
+    with patch.object(model_client, 'generate', side_effect=mock_gen):
+        response = client.post(
+            "/api/agents/copilot/chat",
+            json={
+                "message": "Give me a diagnostic snapshot of our class performance and average score.",
+                "class_id": "class_a"
+            }
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert len(captured_prompts) > 0
+    prompt_text = captured_prompts[0]
+
+    # Verify real-time database context was provided to the LLM
+    assert "LIVE CLASSROOM CONTEXT" in prompt_text
+    assert "Overall Class Performance Average" in prompt_text
+    assert "Calculus Derivatives & Chain Rule" in prompt_text
+    assert "Upcoming Teaching Lessons" in prompt_text or "Syllabus Topics" in prompt_text
+
+    _system_settings_state["active_tier"] = "free"
+

@@ -63,6 +63,141 @@ class TeacherCopilotService:
 
         return "\n".join(lines)
 
+    def _build_live_classroom_context(
+        self,
+        db: Session,
+        target_class: str,
+        class_label: str,
+        schedule_dict: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Dynamically extracts the real-time ground truth from SQLite database:
+        - Syllabus topics, estimated hours, difficulty, priority
+        - Student performance records, test dates, topic scores, overall average
+        - Teaching sessions and spaced revision schedules
+        - Academic calendar days and holidays
+        - Multi-class overview (topics and average performance of other classes)
+        """
+        # 1. Topics for target class
+        topics = db.query(TopicDB).filter(TopicDB.class_id == target_class).order_by(TopicDB.id).all()
+        topic_map = {t.id: t.name for t in topics}
+
+        # 2. Performance records for target class
+        perf_records = db.query(PerformanceRecordDB).filter(
+            PerformanceRecordDB.class_id == target_class
+        ).order_by(PerformanceRecordDB.test_date.desc()).all()
+
+        topic_scores: Dict[str, List[float]] = {}
+        all_scores: List[float] = []
+        for r in perf_records:
+            tname = topic_map.get(r.topic_id, f"Topic {r.topic_id}")
+            if tname not in topic_scores:
+                topic_scores[tname] = []
+            topic_scores[tname].append(r.score)
+            all_scores.append(r.score)
+
+        avg_class_score = (sum(all_scores) / len(all_scores) * 100.0) if all_scores else None
+
+        weak_topics = []
+        mastered_topics = []
+        moderate_topics = []
+        for tname, scores in topic_scores.items():
+            t_avg = sum(scores) / len(scores) * 100.0
+            score_summary = f"{tname}: {t_avg:.0f}% (Tests: {', '.join(f'{s*100:.0f}%' for s in scores[:3])})"
+            if t_avg < 60.0:
+                weak_topics.append(score_summary)
+            elif t_avg >= 80.0:
+                mastered_topics.append(score_summary)
+            else:
+                moderate_topics.append(score_summary)
+
+        # 3. Schedule sessions
+        teaching_sessions = schedule_dict.get("teaching_sessions", [])
+        revision_sessions = schedule_dict.get("revision_sessions", [])
+
+        # 4. Academic calendar
+        calendar_days = db.query(CalendarDayDB).order_by(CalendarDayDB.date_val.asc()).all()
+        holidays = [c.date_val for c in calendar_days if c.is_holiday]
+
+        # 5. Other classes in school system
+        class_labels_dict = {
+            "class_a": "Class 11-A (Mathematics)",
+            "class_b": "Class 12-B (Physics)",
+            "class_c": "Class 10-C (Chemistry)"
+        }
+        other_classes_info = []
+        for cid, clabel in class_labels_dict.items():
+            if cid == target_class:
+                continue
+            c_topics = db.query(TopicDB).filter(TopicDB.class_id == cid).count()
+            c_perfs = db.query(PerformanceRecordDB).filter(PerformanceRecordDB.class_id == cid).all()
+            c_avg = f"{(sum(p.score for p in c_perfs) / len(c_perfs) * 100.0):.0f}%" if c_perfs else "No test marks yet"
+            other_classes_info.append(f"- {clabel}: {c_topics} syllabus topics, Average Score: {c_avg}")
+
+        # Build formatted text for prompt
+        lines = [
+            f"Active Class: {class_label} [Class ID: {target_class}]",
+            f"Overall Class Performance Average: {f'{avg_class_score:.1f}%' if avg_class_score is not None else 'No exam marks recorded yet'} ({len(all_scores)} total test assessments recorded)",
+        ]
+
+        if weak_topics:
+            lines.append("• High-Priority Weak Topics (Needs Immediate Review):")
+            for wt in weak_topics:
+                lines.append(f"  - {wt}")
+
+        if moderate_topics:
+            lines.append("• Developing Topics (Moderate Mastery):")
+            for mt in moderate_topics:
+                lines.append(f"  - {mt}")
+
+        if mastered_topics:
+            lines.append("• Strong / Mastered Topics:")
+            for st in mastered_topics:
+                lines.append(f"  - {st}")
+
+        # Topics list with estimated hours
+        lines.append(f"\nSyllabus Topics ({len(topics)} registered):")
+        for t in topics:
+            status_str = f"Status: {t.status}" if t.status else ""
+            lines.append(f"  - {t.name} (Estimated: {t.estimated_hours}h, Weightage: {t.exam_weightage}%, Difficulty: {t.difficulty}/5) {status_str}")
+
+        # Schedule lessons
+        if teaching_sessions:
+            lines.append(f"\nUpcoming Teaching Lessons (Next 6 sessions):")
+            for sess in teaching_sessions[:6]:
+                lines.append(f"  - {sess.get('scheduled_date')}: {sess.get('topic_name')} ({sess.get('allocated_hours')}h)")
+
+        # Revision sessions
+        if revision_sessions:
+            lines.append(f"\nUpcoming Spaced Revisions (Next 6 sessions):")
+            for sess in revision_sessions[:6]:
+                stage = sess.get('revision_stage', 1)
+                lines.append(f"  - {sess.get('scheduled_date')}: Stage {stage} Review of '{sess.get('topic_name')}' ({sess.get('allocated_hours')}h)")
+
+        # Calendar
+        if calendar_days:
+            lines.append(f"\nAcademic Calendar:")
+            lines.append(f"  - Timetable window: {calendar_days[0].date_val} to {calendar_days[-1].date_val} ({len(calendar_days)} tracked days)")
+            if holidays:
+                lines.append(f"  - Holidays / School Closures: {', '.join(holidays[:5])}")
+
+        # Other classes
+        if other_classes_info:
+            lines.append(f"\nOther Classes in School System:")
+            for o in other_classes_info:
+                lines.append(f"  {o}")
+
+        return {
+            "context_text": "\n".join(lines),
+            "avg_class_score": avg_class_score,
+            "test_count": len(all_scores),
+            "weak_topics": weak_topics,
+            "mastered_topics": mastered_topics,
+            "topic_count": len(topics),
+            "teaching_count": len(teaching_sessions),
+            "revision_count": len(revision_sessions)
+        }
+
     def process_copilot_request(
         self,
         message: str,
@@ -274,21 +409,40 @@ class TeacherCopilotService:
 
         else:
             # Local LLM (Ollama) or Cloud Tier (Gemini / OpenAI)
+            classroom_info = self._build_live_classroom_context(db, target_class, class_label, schedule_dict)
+            live_context = classroom_info["context_text"]
+            avg_score = classroom_info["avg_class_score"]
+            test_count = classroom_info["test_count"]
+            topic_count = classroom_info["topic_count"]
+
             system_prompt = (
                 "You are 'Pacekeeper Teacher Copilot', an expert pedagogical assistant helping teachers manage "
                 "classroom curriculum pacing, spaced repetition, student exam diagnostics, and school timetable allocation.\n"
+                "CRITICAL: You have live real-time access to the teacher's SQLite database provided in 'LIVE CLASSROOM CONTEXT'.\n"
+                "You know all topics, student exam scores, class averages, scheduled teaching lessons, and spaced revisions.\n"
+                "Use the exact topic names, percentages, test scores, and schedule dates from the live context.\n"
+                "NEVER say you lack test data, student marks, or schedule information when it is present in the context below.\n"
                 "Speak directly to the teacher in a supportive, professional, and actionable tone.\n"
-                "Explain schedule trade-offs, highlight prerequisite topics, and recommend concrete classroom interventions (e.g. 15-minute starter quizzes, homework focus)."
+                "Explain schedule trade-offs, highlight prerequisite topics, and recommend concrete classroom interventions "
+                "(e.g. 15-minute starter quizzes, homework focus, or targeted mini-lessons on weak subtopics)."
+            )
+
+            diag_text = (
+                f"New Exam Sheet Diagnosed this turn: Topic '{diagnosis_result.get('detected_topic')}', "
+                f"Score {round(float(diagnosis_result.get('overall_score', 0))*100)}%, "
+                f"Summary: {diagnosis_result.get('diagnostic_summary')}"
+                if diagnosis_result else "No new exam sheet image attached in this specific message."
             )
 
             user_prompt = (
-                f"Class: {class_label}\n"
-                f"Current Topics: {', '.join(topic_names)}\n"
-                f"Actions Executed by Tools: {', '.join(actions_taken) if actions_taken else 'None'}\n"
-                f"Diagnosis Data: {json.dumps(diagnosis_result or {})}\n"
-                f"Schedule Summary: {len(schedule_dict.get('teaching_sessions', []))} teaching blocks, {len(schedule_dict.get('revision_sessions', []))} revision blocks.\n"
-                f"Teacher's Message: {message}\n\n"
-                "Provide a concise, helpful response addressing the teacher's request and explaining any actions taken."
+                f"=== LIVE CLASSROOM CONTEXT (Real-Time Database Ground Truth) ===\n"
+                f"{live_context}\n\n"
+                f"=== ACTIONS EXECUTED THIS TURN ===\n"
+                f"Tools Executed: {', '.join(actions_taken) if actions_taken else 'Classroom database queried'}\n"
+                f"{diag_text}\n\n"
+                f"=== TEACHER'S MESSAGE ===\n"
+                f"\"{message}\"\n\n"
+                "Provide a direct, helpful, and specific response to the teacher's message using the live data above."
             )
 
             # If the image was already processed by the diagnostic vision tool, do not pass heavy image bytes
@@ -325,10 +479,11 @@ class TeacherCopilotService:
                                 f"  *Diagnostic Finding*: {summary_diag}\n"
                                 f"• **Curriculum Adjusted**: Topics re-weighted for memory retention."
                             )
+                        avg_str = f"**{avg_score:.0f}%** ({test_count} assessments on record)" if avg_score is not None else "No scores recorded yet"
                         reply_text = (
-                            f"**Teacher Copilot [{provider.capitalize()} Mode]**\n\n"
-                            f"I processed your classroom request for **{class_label}**.\n"
-                            f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.{diag_block}\n\n"
+                            f"**Teacher Copilot [{provider.capitalize()} Mode]** for **{class_label}**:\n\n"
+                            f"• **Class Performance**: Average is {avg_str}.\n"
+                            f"• **Syllabus & Timetable**: {topic_count} topics registered, {len(schedule_dict.get('teaching_sessions', []))} teaching blocks, and {len(schedule_dict.get('revision_sessions', []))} spaced revision blocks active.{diag_block}\n\n"
                             f"*(Note from conversational model: {err_reason})*"
                         )
                     except Exception:
@@ -344,11 +499,11 @@ class TeacherCopilotService:
                         f"  *Diagnostic Finding*: {summary_diag}\n"
                         f"• **Curriculum Adjusted**: Topics re-weighted for memory retention."
                     )
+                avg_str = f"**{avg_score:.0f}%** ({test_count} assessments on record)" if avg_score is not None else "No scores recorded yet"
                 reply_text = (
-                    f"**Teacher Copilot [{provider.capitalize()} Mode]**\n\n"
-                    f"I processed your request for **{class_label}**.\n"
-                    f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.{diag_block}\n"
-                    f"• Status: {len(schedule_dict.get('revision_sessions', []))} spaced revision blocks active.\n\n"
+                    f"**Teacher Copilot [{provider.capitalize()} Mode]** for **{class_label}**:\n\n"
+                    f"• **Class Performance**: Average is {avg_str}.\n"
+                    f"• **Syllabus & Timetable**: {topic_count} topics registered, {len(schedule_dict.get('teaching_sessions', []))} teaching blocks, and {len(schedule_dict.get('revision_sessions', []))} spaced revision blocks active.{diag_block}\n\n"
                     f"*(AI Note: {str(e)})*"
                 )
 

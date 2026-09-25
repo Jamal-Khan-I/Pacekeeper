@@ -357,6 +357,12 @@ export default function TeacherCopilotModal({
         {/* Quick Suggestion Chips */}
         <div className="px-4 py-2 bg-slate-900/50 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto no-scrollbar">
           <button
+            onClick={() => handleSendMessage('Give me a diagnostic snapshot of our class performance, average score, and weak topics.')}
+            className="text-[11px] whitespace-nowrap px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-emerald-600/30 text-emerald-300 border border-slate-700/60 transition"
+          >
+            📈 Class Marks & Performance
+          </button>
+          <button
             onClick={() => handleSendMessage('Please reschedule the curriculum to add an extra revision block for weak topics.')}
             className="text-[11px] whitespace-nowrap px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-indigo-600/30 text-indigo-300 border border-slate-700/60 transition"
           >
@@ -378,7 +384,19 @@ export default function TeacherCopilotModal({
             onClick={() => loadSampleImage('class_a_math_calculus_chain_rule_error.jpg', 'Alex Mercer (Chain Rule Error)')}
             className="text-[11px] whitespace-nowrap px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-pink-600/30 text-pink-300 border border-slate-700/60 transition"
           >
-            📎 Sample: Alex (Chain Rule)
+            📎 Sample: Alex (Math Chain Rule)
+          </button>
+          <button
+            onClick={() => loadSampleImage('class_b_physics_quantum_photoelectric_error.jpg', 'Liam Gallagher (Photoelectric Effect)')}
+            className="text-[11px] whitespace-nowrap px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-amber-600/30 text-amber-300 border border-slate-700/60 transition"
+          >
+            📎 Sample: Liam (Physics Quantum)
+          </button>
+          <button
+            onClick={() => loadSampleImage('class_c_chem_organic_reaction_mechanism_error.jpg', 'Natalie Portman (Organic SN2)')}
+            className="text-[11px] whitespace-nowrap px-3 py-1 rounded-xl bg-slate-800/80 hover:bg-teal-600/30 text-teal-300 border border-slate-700/60 transition"
+          >
+            📎 Sample: Natalie (Chemistry SN2)
           </button>
         </div>
 
