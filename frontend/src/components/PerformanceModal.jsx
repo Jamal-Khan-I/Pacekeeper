@@ -117,7 +117,6 @@ export default function PerformanceModal({
   if (!isOpen) return null;
 
   const topicIdToUse = selectedTopicId || (topics[0]?.id ?? '');
-  const activeRosterTopic = topics.find(t => t.id === (rosterTopicId || topics[0]?.id)) || topics[0];
 
   const addLog = (type, msg) => {
     const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -131,7 +130,7 @@ export default function PerformanceModal({
     setTestDate(d.toISOString().split('T')[0]);
   };
 
-  // --- CLASS ROSTER PARSING (FOR LARGE NUMBER OF STUDENTS) ---
+  // --- CLASS ROSTER PARSING (FOR LARGE NUMBER OF STUDENTS 30-60+) ---
   const parseClassRoster = (text, maxScoreVal) => {
     if (!text || !text.trim()) return [];
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -140,7 +139,6 @@ export default function PerformanceModal({
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      // Skip headers
       if (i === 0 && (line.toLowerCase().includes('name') || line.toLowerCase().includes('roll') || line.toLowerCase().includes('mark') || line.toLowerCase().includes('score'))) {
         continue;
       }
@@ -203,7 +201,6 @@ export default function PerformanceModal({
     : 0;
 
   const handleLoadSampleRoster = () => {
-    // Generates a realistic 36-student class assessment roster
     const sample = `Alex Mercer, 19
 Brenda Smith, 24
 Charlie Davis, 11
@@ -244,7 +241,6 @@ Kylie Simmons, 19`;
     setRosterMaxMarks(25);
   };
 
-  // Submit Class Roster
   const handleSubmitClassRoster = async () => {
     if (!rosterTopicId || totalStudents === 0) return;
     setRosterSubmitting(true);
@@ -278,7 +274,7 @@ Kylie Simmons, 19`;
     }
   };
 
-  // --- CAMERA & AI VISION HELPERS ---
+  // --- CAMERA & AI VISION HELPERS (AI TIERS) ---
   const startCamera = async () => {
     setIsCameraActive(true);
     setDiagnosisResult(null);
@@ -605,6 +601,13 @@ Kylie Simmons, 19`;
     reader.readAsText(file);
   };
 
+  const handleLoadSampleCSV = () => {
+    const sample = `Trigonometry & Trigonometric Identities, 34, 40
+Calculus Derivatives & Chain Rule, 18, 25
+Limits & Continuity, 19, 20`;
+    setBulkText(sample);
+  };
+
   const handleSubmitBulk = async () => {
     if (parsedBulkRows.length === 0) return;
     setBulkImporting(true);
@@ -785,6 +788,11 @@ Kylie Simmons, 19`;
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>Multi-Topic CSV</span>
+            {parsedBulkRows.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px] font-bold">
+                {parsedBulkRows.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -856,8 +864,6 @@ Kylie Simmons, 19`;
         {/* ================= TAB: CLASS ROSTER (30-60+ STUDENTS) ================= */}
         {activeTab === 'roster' && (
           <div className="space-y-4 animate-banner">
-            
-            {/* Exam Header: Topic & Max Marks */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <div className="flex items-center justify-between mb-1">
@@ -1095,7 +1101,9 @@ Kylie Simmons, 19`;
             {/* Submit Action */}
             <div className="flex justify-between items-center pt-3 border-t border-slate-800">
               <span className="text-xs text-gray-400">
-                Pacing engine updates schedule to match overall class average ({classAveragePct}%).
+                {totalStudents > 0 
+                  ? `Class average (${classAveragePct}%) updates ${topics.find(t => t.id === (rosterTopicId || topicIdToUse))?.name || 'topic'}.` 
+                  : 'Paste marks or click "Load Sample Roster" above.'}
               </span>
 
               <div className="flex gap-2">
@@ -1110,7 +1118,7 @@ Kylie Simmons, 19`;
                   type="button"
                   disabled={rosterSubmitting || totalStudents === 0}
                   onClick={handleSubmitClassRoster}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-xl shadow-emerald-500/20 transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-xl shadow-emerald-500/20 transition-all disabled:opacity-40"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   {rosterSubmitting 
@@ -1125,8 +1133,6 @@ Kylie Simmons, 19`;
         {/* ================= TAB: SINGLE TOPIC SCORE ENTRY ================= */}
         {activeTab === 'manual' && (
           <form onSubmit={handleSubmitSingle} className="space-y-4 animate-banner">
-            
-            {/* Topic Selection */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-gray-300">Select Syllabus Topic</label>
@@ -1140,7 +1146,6 @@ Kylie Simmons, 19`;
                 </button>
               </div>
 
-              {/* Inline Quick Add Topic Form */}
               {showQuickAddTopic && (
                 <div className="mb-3 p-3 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-2 animate-banner">
                   <span className="text-[11px] font-bold text-indigo-300 block">Add New Topic to Syllabus</span>
@@ -1411,23 +1416,41 @@ Kylie Simmons, 19`;
                 >
                   Choose File (.csv, .txt)
                 </label>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleCSV}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 transition"
+                >
+                  Load Sample Template
+                </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">
-                Paste Multi-Topic CSV / Excel Rows:
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-300">
+                  Paste Multi-Topic CSV / Excel Rows:
+                </label>
+                {bulkText && (
+                  <button
+                    type="button"
+                    onClick={() => setBulkText('')}
+                    className="text-[11px] text-gray-500 hover:text-gray-300"
+                  >
+                    Clear Text
+                  </button>
+                )}
+              </div>
               <textarea
                 rows={4}
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
-                placeholder={`Trigonometry & Trigonometric Identities, 34, 40\nCalculus Derivatives & Chain Rule, 18, 25\nLimits & Continuity, 19, 20`}
+                placeholder="Click 'Load Sample Template' above or paste rows like:&#10;Trigonometry & Trigonometric Identities, 34, 40&#10;Calculus Derivatives & Chain Rule, 18, 25&#10;Limits & Continuity, 19, 20"
                 className="w-full glass-input px-3.5 py-2.5 rounded-xl text-xs font-mono"
               />
             </div>
 
-            {parsedBulkRows.length > 0 && (
+            {parsedBulkRows.length > 0 ? (
               <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-gray-200">
@@ -1477,16 +1500,18 @@ Kylie Simmons, 19`;
                   ))}
                 </div>
               </div>
+            ) : (
+              <div className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-xl text-center text-xs text-gray-400">
+                Paste your spreadsheet rows above or click <strong className="text-cyan-300">"Load Sample Template"</strong> to preview.
+              </div>
             )}
 
             <div className="flex justify-between items-center pt-3 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setBulkText('')}
-                className="text-xs text-gray-500 hover:text-gray-300"
-              >
-                Clear
-              </button>
+              <span className="text-xs text-gray-400">
+                {parsedBulkRows.length > 0 
+                  ? `${parsedBulkRows.length} topics ready to update schedule.`
+                  : 'No rows parsed yet.'}
+              </span>
 
               <div className="flex gap-2">
                 <button
@@ -1500,12 +1525,14 @@ Kylie Simmons, 19`;
                   type="button"
                   disabled={bulkImporting || parsedBulkRows.length === 0}
                   onClick={handleSubmitBulk}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white shadow-xl shadow-cyan-500/20 transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white shadow-xl shadow-cyan-500/20 transition-all disabled:opacity-40"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   {bulkImporting 
                     ? 'Importing & Replanning...' 
-                    : `Import ${parsedBulkRows.length} Scores & Auto-Replan`}
+                    : parsedBulkRows.length > 0 
+                      ? `Import ${parsedBulkRows.length} Scores & Auto-Replan`
+                      : 'Import Scores & Auto-Replan'}
                 </button>
               </div>
             </div>
