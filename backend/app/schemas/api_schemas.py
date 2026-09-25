@@ -75,7 +75,7 @@ class PerformanceCreate(BaseModel):
     test_date: date
     max_score: float = 100.0
     raw_score: float = 0.0
-    question_breakdown: Dict[str, float] = Field(default_factory=dict)
+    question_breakdown: Dict[str, Any] = Field(default_factory=dict)
     source: str = Field(default="live", description="'demo' or 'live'")
     image_path: Optional[str] = None
 
@@ -87,7 +87,7 @@ class PerformanceResponse(BaseModel):
     test_date: date
     max_score: float
     raw_score: float
-    question_breakdown: Dict[str, float]
+    question_breakdown: Dict[str, Any]
     source: str = "live"
     image_path: Optional[str] = None
     created_at: datetime
