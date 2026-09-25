@@ -30,28 +30,34 @@ class TeacherCopilotService:
         teaching_sessions = schedule_dict.get("teaching_sessions", [])
         revision_sessions = schedule_dict.get("revision_sessions", [])
 
+        # Clean title to ensure strict Mermaid Gantt syntax compatibility
+        clean_title = re.sub(r'[:#;`&]', ' and ', class_title).strip()
         lines = [
             "gantt",
-            f"    title {class_title} Curriculum & Revision Roadmap",
+            f"    title {clean_title} Curriculum and Revision Roadmap",
             "    dateFormat YYYY-MM-DD",
             "    axisFormat %b %d",
         ]
 
         if teaching_sessions:
             lines.append("    section Teaching Lessons")
-            for idx, sess in enumerate(teaching_sessions[:6]):
-                t_name = sess.get("topic_name", f"Lesson {idx+1}").replace(":", " -")
+            for idx, sess in enumerate(teaching_sessions[:8]):
+                raw_name = sess.get("topic_name", f"Lesson {idx+1}")
+                t_name = re.sub(r'[:#;`&]', ' and ', raw_name).strip()
+                t_name = re.sub(r'\s+', ' ', t_name)
                 d_str = sess.get("scheduled_date", "2026-09-28")
                 dur = max(1, int(round(sess.get("allocated_hours", 2.0) / 2.0)))
-                lines.append(f"    {t_name} :{d_str}, {dur}d")
+                lines.append(f"    {t_name} :active, {d_str}, {dur}d")
 
         if revision_sessions:
             lines.append("    section Spaced Revisions")
-            for idx, sess in enumerate(revision_sessions[:6]):
-                t_name = sess.get("topic_name", f"Revision {idx+1}").replace(":", " -")
+            for idx, sess in enumerate(revision_sessions[:8]):
+                raw_name = sess.get("topic_name", f"Revision {idx+1}")
+                t_name = re.sub(r'[:#;`&]', ' and ', raw_name).strip()
+                t_name = re.sub(r'\s+', ' ', t_name)
                 stage = sess.get("revision_stage", 1)
                 d_str = sess.get("scheduled_date", "2026-09-29")
-                lines.append(f"    Stage {stage}: {t_name} :{d_str}, 1d")
+                lines.append(f"    Rev {stage} - {t_name} :crit, {d_str}, 1d")
 
         return "\n".join(lines)
 

@@ -5,6 +5,7 @@ import {
   AlertCircle, ChevronRight, Image as ImageIcon, Flame, ArrowUpRight, Lock
 } from 'lucide-react';
 import { api } from '../services/api';
+import CurriculumRoadmapView from './CurriculumRoadmapView';
 
 export default function TeacherCopilotModal({
   isOpen,
@@ -316,15 +317,12 @@ export default function TeacherCopilotModal({
                   </div>
                 )}
 
-                {/* Mermaid Schedule Diagram Preview Card */}
+                {/* Visual Curriculum Roadmap Diagram (Interactive Mermaid & Timeline) */}
                 {m.diagramCode && (
-                  <div className="mt-3 p-3 rounded-xl bg-slate-950/80 border border-indigo-500/30 font-mono text-[11px] text-indigo-300 overflow-x-auto">
-                    <div className="text-[10px] uppercase font-bold text-gray-400 mb-1 flex items-center justify-between">
-                      <span>Curriculum Roadmap Diagram</span>
-                      <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                    </div>
-                    <pre className="text-[10px] text-slate-300 whitespace-pre">{m.diagramCode}</pre>
-                  </div>
+                  <CurriculumRoadmapView
+                    diagramCode={m.diagramCode}
+                    title="Curriculum & Revision Roadmap"
+                  />
                 )}
 
                 {/* Voice Re-play Button */}
