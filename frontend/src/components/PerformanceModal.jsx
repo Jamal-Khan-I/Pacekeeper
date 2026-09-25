@@ -241,6 +241,17 @@ Kylie Simmons, 19`;
     setRosterMaxMarks(25);
   };
 
+  const downloadSampleFile = (filename, content) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSubmitClassRoster = async () => {
     if (!rosterTopicId || totalStudents === 0) return;
     setRosterSubmitting(true);
@@ -966,6 +977,17 @@ Limits & Continuity, 19, 20`;
                   >
                     Load 36-Student Sample Roster
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sample = `Student Name,Marks Obtained,Max Marks,Test Date\nAlex Mercer,19,25,${testDate}\nBrenda Smith,24,25,${testDate}\nCharlie Davis,11,25,${testDate}\nDavid Evans,22,25,${testDate}\nEmily Clark,9,25,${testDate}\nFiona White,18,25,${testDate}\nGeorge Wilson,25,25,${testDate}\nHannah Martin,14,25,${testDate}\nIan Thomas,20,25,${testDate}\nJessica Hall,8,25,${testDate}\nKevin Adams,16,25,${testDate}\nLaura Nelson,23,25,${testDate}\nMichael Carter,17,25,${testDate}\nNina Patel,21,25,${testDate}\nOscar Garcia,10,25,${testDate}\nPaula Reed,19,25,${testDate}\nQuinn Ross,24,25,${testDate}\nRachel Cox,15,25,${testDate}\nSam Bailey,7,25,${testDate}\nTina Diaz,22,25,${testDate}\nUmar Khan,18,25,${testDate}\nVictoria Stone,25,25,${testDate}\nWilliam Scott,12,25,${testDate}\nXavier Miller,19,25,${testDate}\nYvonne Green,23,25,${testDate}\nZachary King,16,25,${testDate}\nAiden Young,14,25,${testDate}\nChloe Perez,21,25,${testDate}\nDylan Wright,8,25,${testDate}\nElla Foster,20,25,${testDate}\nFelix Ramirez,18,25,${testDate}\nGrace Torres,24,25,${testDate}\nHenry Jenkins,13,25,${testDate}\nIsla Perry,22,25,${testDate}\nJack Russell,17,25,${testDate}\nKylie Simmons,19,25,${testDate}`;
+                      downloadSampleFile('demo_gradebook_class_11a.csv', sample);
+                    }}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700 font-semibold transition"
+                    title="Download demo CSV to your computer to upload"
+                  >
+                    📥 Download Demo CSV
+                  </button>
                   {rosterText && (
                     <button
                       type="button"
@@ -1422,6 +1444,17 @@ Limits & Continuity, 19, 20`;
                   className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 transition"
                 >
                   Load Sample Template
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sample = `Topic Name,Marks Obtained,Max Marks,Test Date\nCalculus Derivatives & Chain Rule,18,25,${testDate}\nTrigonometry & Trigonometric Identities,34,40,${testDate}\nLimits & Continuity,19,20,${testDate}\nLinear Algebra & Matrices,14,25,${testDate}\nBasic Algebra & Polynomials,38,40,${testDate}`;
+                    downloadSampleFile('demo_multi_topic_scores.csv', sample);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+                  title="Download demo CSV to your computer to upload"
+                >
+                  📥 Download Demo CSV
                 </button>
               </div>
             </div>
