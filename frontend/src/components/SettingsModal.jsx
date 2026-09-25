@@ -7,34 +7,34 @@ import { api } from '../services/api';
 
 const THEME_OPTIONS = [
   {
-    id: 'cyber',
-    name: 'Cyber Mode',
-    subtitle: 'Dark green & light neon green',
-    tag: 'Matrix Green',
-    icon: Terminal,
-    activeBorder: 'border-emerald-500 shadow-lg shadow-emerald-500/30 bg-emerald-950/60 text-emerald-100 ring-2 ring-emerald-500/50',
-    inactiveBorder: 'border-slate-800 bg-slate-900/60 text-gray-400 hover:border-slate-700',
-    swatches: ['#020904', '#061a0c', '#0c2b16', '#34d399']
-  },
-  {
     id: 'dark',
     name: 'Dark Mode',
-    subtitle: 'Pitch black background & pure white typography',
-    tag: 'Onyx Black',
+    subtitle: 'Royal Emerald & Onyx Black with pure white letters',
+    tag: 'Royal Emerald',
     icon: Moon,
-    activeBorder: 'border-zinc-300 shadow-lg shadow-white/10 bg-zinc-900 text-white ring-2 ring-white/50',
-    inactiveBorder: 'border-zinc-800 bg-zinc-950 text-gray-400 hover:border-zinc-700',
-    swatches: ['#000000', '#0f0f11', '#18181b', '#ffffff']
+    activeBorder: 'border-emerald-400 shadow-lg shadow-emerald-500/30 bg-[#061a0c] text-white ring-2 ring-emerald-500/60',
+    inactiveBorder: 'border-emerald-950 bg-black text-gray-300 hover:border-emerald-800',
+    swatches: ['#000000', '#061a0c', '#10b981', '#ffffff']
+  },
+  {
+    id: 'cyber',
+    name: 'Cyber Mode',
+    subtitle: 'Matrix high-tech neon green & dark green',
+    tag: 'Matrix Green',
+    icon: Terminal,
+    activeBorder: 'border-[#00ff88] shadow-lg shadow-[#00ff88]/30 bg-[#062413] text-[#00ff88] ring-2 ring-[#00ff88]/60',
+    inactiveBorder: 'border-emerald-950 bg-[#020904] text-gray-300 hover:border-emerald-800',
+    swatches: ['#020904', '#062413', '#00ff88', '#ffffff']
   },
   {
     id: 'light',
     name: 'White Mode',
-    subtitle: 'Cool slate canvas with crisp white panels',
+    subtitle: 'Cool slate canvas with crisp white panels & black text',
     tag: 'Clean Light',
     icon: Sun,
-    activeBorder: 'border-blue-600 shadow-lg shadow-blue-500/20 bg-blue-50/90 text-blue-950 ring-2 ring-blue-500/40',
-    inactiveBorder: 'border-slate-300 bg-slate-100 text-gray-600 hover:border-slate-400',
-    swatches: ['#e2e8f0', '#ffffff', '#94a3b8', '#0f172a']
+    activeBorder: 'border-blue-600 shadow-lg shadow-blue-500/20 bg-blue-50 text-black ring-2 ring-blue-500/40',
+    inactiveBorder: 'border-slate-300 bg-slate-100 text-gray-700 hover:border-slate-400',
+    swatches: ['#e2e8f0', '#ffffff', '#94a3b8', '#000000']
   }
 ];
 
