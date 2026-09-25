@@ -56,6 +56,51 @@ def submit_performance(payload: PerformanceCreate, db: Session = Depends(get_db)
     return updated_schedule
 
 
+@router.post("/batch", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
+def submit_performance_batch(records: List[PerformanceCreate], db: Session = Depends(get_db)):
+    if not records:
+        raise HTTPException(status_code=400, detail="Empty records list")
+
+    target_class_id = None
+    for payload in records:
+        topic_db = db.query(TopicDB).filter(TopicDB.id == payload.topic_id).first()
+        if not topic_db:
+            continue
+
+        target_class_id = topic_db.class_id
+        rec_id = f"perf_{uuid.uuid4().hex[:8]}"
+        date_str = payload.test_date.isoformat()
+
+        db_rec = PerformanceRecordDB(
+            id=rec_id,
+            topic_id=payload.topic_id,
+            class_id=topic_db.class_id,
+            score=payload.score,
+            test_date=date_str,
+            max_score=payload.max_score,
+            raw_score=payload.raw_score,
+            question_breakdown_json=json.dumps(payload.question_breakdown),
+            source=payload.source or "live",
+            image_path=payload.image_path,
+        )
+        db.add(db_rec)
+
+        # Update latest score on topic
+        topic_db.performance_score = payload.score
+        if payload.score >= 0.8:
+            topic_db.status = "completed"
+        elif payload.score < 0.5:
+            topic_db.status = "needs_revision"
+        else:
+            topic_db.status = "in_progress"
+
+    db.commit()
+
+    # Recompute schedule once for the affected class
+    updated_schedule = execute_and_persist_schedule(db, class_id=target_class_id, adjust_weights=True)
+    return updated_schedule
+
+
 @router.get("", response_model=List[PerformanceResponse])
 def list_performance_records(
     class_id: Optional[str] = Query(None, description="Filter by class_id"),

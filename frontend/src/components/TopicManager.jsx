@@ -34,6 +34,41 @@ export default function TopicManager({ topics, onCreateTopic, onUpdateTopic, onD
     setShowForm(false);
   };
 
+  const [formMode, setFormMode] = useState('single'); // 'single' or 'bulk'
+  const [bulkTopicsText, setBulkTopicsText] = useState('');
+  const [bulkSubject, setBulkSubject] = useState('Mathematics');
+  const [bulkWeightage, setBulkWeightage] = useState(20);
+  const [bulkDifficulty, setBulkDifficulty] = useState(3.0);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+    const lines = bulkTopicsText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+
+    setBulkSubmitting(true);
+    try {
+      for (const line of lines) {
+        await onCreateTopic({
+          name: line,
+          subject: bulkSubject,
+          exam_weightage: parseFloat(bulkWeightage) || 20,
+          difficulty: parseFloat(bulkDifficulty) || 3.0,
+          estimated_hours: 6.0,
+          tags: [bulkSubject.toLowerCase()]
+        });
+      }
+      setBulkTopicsText('');
+      setShowForm(false);
+    } catch (err) {
+      alert(`Error creating topics: ${err.message}`);
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
+  const parsedBulkTopicCount = bulkTopicsText.split(/\r?\n/).map(l => l.trim()).filter(Boolean).length;
+
   return (
     <div className="glass-panel rounded-2xl p-6 mb-6">
       {/* Header */}
@@ -44,7 +79,7 @@ export default function TopicManager({ topics, onCreateTopic, onUpdateTopic, onD
             Syllabus Topics ({topics.length})
           </h3>
           <p className="text-xs text-gray-400">
-            Define syllabus topics, exam weightages, and difficulty ratings.
+            Define syllabus topics, exam weightages, and difficulty ratings manually or paste entire syllabus lists.
           </p>
         </div>
 
@@ -59,77 +94,189 @@ export default function TopicManager({ topics, onCreateTopic, onUpdateTopic, onD
 
       {/* Add Topic Drawer / Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-slate-900/90 border border-indigo-500/30 rounded-xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-banner">
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-semibold text-gray-300 mb-1">Topic Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Calculus Derivatives"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
-              required
-            />
+        <div className="bg-slate-900/90 border border-indigo-500/30 rounded-xl p-4 mb-6 animate-banner space-y-4">
+          
+          {/* Mode Switcher */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <span className="text-xs font-bold text-indigo-300">Choose Creation Method:</span>
+            <div className="flex items-center p-0.5 bg-slate-950 rounded-lg border border-slate-800 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setFormMode('single')}
+                className={`px-3 py-1 rounded-md font-semibold transition ${
+                  formMode === 'single' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Single Topic
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormMode('bulk')}
+                className={`px-3 py-1 rounded-md font-semibold transition ${
+                  formMode === 'bulk' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Paste Multiple Topics (Syllabus Drop)
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">Subject</label>
-            <select
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
-            >
-              <option value="Mathematics" className="bg-slate-900">Mathematics</option>
-              <option value="Physics" className="bg-slate-900">Physics</option>
-              <option value="Chemistry" className="bg-slate-900">Chemistry</option>
-              <option value="Biology" className="bg-slate-900">Biology</option>
-              <option value="Computer Science" className="bg-slate-900">Computer Science</option>
-            </select>
-          </div>
+          {formMode === 'single' ? (
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Topic Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Calculus Derivatives"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                  required
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">Exam Weightage (%)</label>
-            <input
-              type="number"
-              min="1"
-              max="100"
-              value={formData.exam_weightage}
-              onChange={(e) => setFormData({ ...formData, exam_weightage: e.target.value })}
-              className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
-              required
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Subject</label>
+                <select
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                >
+                  <option value="Mathematics" className="bg-slate-900">Mathematics</option>
+                  <option value="Physics" className="bg-slate-900">Physics</option>
+                  <option value="Chemistry" className="bg-slate-900">Chemistry</option>
+                  <option value="Biology" className="bg-slate-900">Biology</option>
+                  <option value="Computer Science" className="bg-slate-900">Computer Science</option>
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1">Difficulty (1 - 5)</label>
-            <input
-              type="number"
-              step="0.5"
-              min="1"
-              max="5"
-              value={formData.difficulty}
-              onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-              className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
-              required
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Exam Weightage (%)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={formData.exam_weightage}
+                  onChange={(e) => setFormData({ ...formData, exam_weightage: e.target.value })}
+                  className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                  required
+                />
+              </div>
 
-          <div className="lg:col-span-5 flex justify-end gap-2 pt-2 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white"
-            >
-              Save Topic
-            </button>
-          </div>
-        </form>
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Difficulty (1 - 5)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="1"
+                  max="5"
+                  value={formData.difficulty}
+                  onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                  className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                  required
+                />
+              </div>
+
+              <div className="lg:col-span-5 flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white"
+                >
+                  Save Topic
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleBulkSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Paste Topic Titles (one per line):
+                </label>
+                <textarea
+                  rows={4}
+                  value={bulkTopicsText}
+                  onChange={(e) => setBulkTopicsText(e.target.value)}
+                  placeholder={`Trigonometry & Trigonometric Identities\nCalculus Derivatives & Chain Rule\nLimits & Continuity\nLinear Algebra & Matrices`}
+                  className="w-full glass-input px-3 py-2 rounded-lg text-xs font-mono"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Default Subject</label>
+                  <select
+                    value={bulkSubject}
+                    onChange={(e) => setBulkSubject(e.target.value)}
+                    className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                  >
+                    <option value="Mathematics" className="bg-slate-900">Mathematics</option>
+                    <option value="Physics" className="bg-slate-900">Physics</option>
+                    <option value="Chemistry" className="bg-slate-900">Chemistry</option>
+                    <option value="Biology" className="bg-slate-900">Biology</option>
+                    <option value="Computer Science" className="bg-slate-900">Computer Science</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Default Weightage (%)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={bulkWeightage}
+                    onChange={(e) => setBulkWeightage(e.target.value)}
+                    className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-gray-400 mb-1">Default Difficulty (1 - 5)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    max="5"
+                    value={bulkDifficulty}
+                    onChange={(e) => setBulkDifficulty(e.target.value)}
+                    className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-slate-800">
+                <span className="text-xs text-gray-400">
+                  {parsedBulkTopicCount > 0 ? `${parsedBulkTopicCount} topics ready to add` : 'Enter topic names above'}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={bulkSubmitting || parsedBulkTopicCount === 0}
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white disabled:opacity-50"
+                  >
+                    {bulkSubmitting ? 'Adding Topics...' : `Add ${parsedBulkTopicCount || ''} Topics`}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {/* Topics List Table */}

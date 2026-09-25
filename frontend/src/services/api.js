@@ -56,6 +56,7 @@ export const api = {
 
   // Performance Score Input & History
   submitPerformance: (perfData) => fetchJSON('/performance', { method: 'POST', body: JSON.stringify(perfData) }),
+  submitPerformanceBatch: (records) => fetchJSON('/performance/batch', { method: 'POST', body: JSON.stringify(records) }),
   getPerformanceRecords: (classId = null, source = null) => {
     const params = new URLSearchParams();
     if (classId) params.append('class_id', classId);

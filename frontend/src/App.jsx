@@ -222,6 +222,20 @@ export default function App() {
     }
   };
 
+  const handleSubmitBatchPerformance = async (records) => {
+    setReplanning(true);
+    try {
+      const updatedSchedule = await api.submitPerformanceBatch(records);
+      setScheduleData(updatedSchedule);
+      const t = await api.getTopics(activeClassId);
+      setAllTopics(prev => ({ ...prev, [activeClassId]: t }));
+    } catch (err) {
+      alert(`Error submitting batch scores: ${err.message}`);
+    } finally {
+      setReplanning(false);
+    }
+  };
+
   // Topic counts across all classes for ClassSelector badge
   const topicCounts = Object.fromEntries(
     Object.entries(allTopics).map(([cid, arr]) => [cid, arr.length])
@@ -363,6 +377,8 @@ export default function App() {
         onClose={() => setIsPerfModalOpen(false)}
         topics={topics}
         onSubmitPerformance={handleSubmitPerformance}
+        onSubmitBatchPerformance={handleSubmitBatchPerformance}
+        onCreateTopic={handleCreateTopic}
         activeClassId={activeClassId}
         activeTier={activeTier}
       />
