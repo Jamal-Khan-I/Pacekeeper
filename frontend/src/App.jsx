@@ -232,7 +232,7 @@ export default function App() {
   );
 
   return (
-    <div className={`min-h-screen app-container text-gray-100 flex flex-col selection:bg-indigo-500 selection:text-white pb-12 ${
+    <div className={`min-h-screen app-container flex flex-col selection:bg-indigo-500 selection:text-white pb-12 ${
       theme === 'cyber' ? 'selection:bg-emerald-500 selection:text-black' : ''
     }`}>
 

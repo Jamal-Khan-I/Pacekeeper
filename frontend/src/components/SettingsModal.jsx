@@ -12,29 +12,29 @@ const THEME_OPTIONS = [
     subtitle: 'Dark green & light neon green',
     tag: 'Matrix Green',
     icon: Terminal,
-    activeBorder: 'border-emerald-500 shadow-lg shadow-emerald-500/20 bg-emerald-950/40 text-emerald-200',
+    activeBorder: 'border-emerald-500 shadow-lg shadow-emerald-500/30 bg-emerald-950/60 text-emerald-100 ring-2 ring-emerald-500/50',
     inactiveBorder: 'border-slate-800 bg-slate-900/60 text-gray-400 hover:border-slate-700',
-    swatches: ['#030d07', '#052e16', '#10b981', '#34d399']
+    swatches: ['#020904', '#061a0c', '#0c2b16', '#34d399']
   },
   {
     id: 'dark',
     name: 'Dark Mode',
-    subtitle: 'Deep space indigo & midnight slate',
-    tag: 'Default',
+    subtitle: 'Pitch black background & pure white typography',
+    tag: 'Onyx Black',
     icon: Moon,
-    activeBorder: 'border-indigo-500 shadow-lg shadow-indigo-500/20 bg-indigo-950/40 text-indigo-200',
-    inactiveBorder: 'border-slate-800 bg-slate-900/60 text-gray-400 hover:border-slate-700',
-    swatches: ['#0b0f19', '#1e1b4b', '#6366f1', '#a855f7']
+    activeBorder: 'border-zinc-300 shadow-lg shadow-white/10 bg-zinc-900 text-white ring-2 ring-white/50',
+    inactiveBorder: 'border-zinc-800 bg-zinc-950 text-gray-400 hover:border-zinc-700',
+    swatches: ['#000000', '#0f0f11', '#18181b', '#ffffff']
   },
   {
     id: 'light',
     name: 'White Mode',
-    subtitle: 'Crisp, high-contrast clean light',
+    subtitle: 'Cool slate canvas with crisp white panels',
     tag: 'Clean Light',
     icon: Sun,
-    activeBorder: 'border-blue-500 shadow-lg shadow-blue-500/20 bg-blue-50/80 text-blue-900',
-    inactiveBorder: 'border-slate-800 bg-slate-900/60 text-gray-400 hover:border-slate-700',
-    swatches: ['#f8fafc', '#ffffff', '#4f46e5', '#38bdf8']
+    activeBorder: 'border-blue-600 shadow-lg shadow-blue-500/20 bg-blue-50/90 text-blue-950 ring-2 ring-blue-500/40',
+    inactiveBorder: 'border-slate-300 bg-slate-100 text-gray-600 hover:border-slate-400',
+    swatches: ['#e2e8f0', '#ffffff', '#94a3b8', '#0f172a']
   }
 ];
 
