@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
 from backend.app.agents.model_client import model_client
+from backend.app.agents.logger_util import safe_print
 
 
 class ExtractedTopic(BaseModel):
@@ -75,7 +76,7 @@ class IngestionAgent:
                 with open(image_input, "rb") as f:
                     return base64.b64encode(f.read()).decode("utf-8")
             except Exception as e:
-                print(f"Error reading image: {e}")
+                safe_print(f"Error reading image: {e}")
         return None
 
     def _parse_ingestion(self, raw_text: str) -> IngestionResult:

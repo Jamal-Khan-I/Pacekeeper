@@ -7,6 +7,9 @@ import threading
 import pyttsx3
 
 
+from backend.app.agents.logger_util import safe_print
+
+
 class VoiceTTSHandler:
 
     def __init__(self):
@@ -24,7 +27,7 @@ class VoiceTTSHandler:
                 engine.say(text[:300]) # Speak first 300 chars summary
                 engine.runAndWait()
             except Exception as e:
-                print(f"TTS Engine Warning: {e}")
+                safe_print(f"TTS Engine Warning: {e}")
 
         t = threading.Thread(target=_worker, daemon=True)
         t.start()

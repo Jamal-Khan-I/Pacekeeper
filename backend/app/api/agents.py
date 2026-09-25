@@ -23,6 +23,7 @@ from backend.app.agents.ollama_client import ollama_client
 from backend.app.agents.performance_analyst import performance_analyst_agent, AnswerSheetDiagnosis
 from backend.app.agents.ingestion_agent import ingestion_agent
 from backend.app.agents.voice_tts import voice_tts
+from backend.app.agents.logger_util import safe_print
 from backend.app.api.performance import submit_performance
 from backend.app.schemas.api_schemas import PerformanceCreate, ScheduleResponse
 
@@ -63,7 +64,7 @@ async def analyze_answer_sheet_api(
     req_source = source or "live"
     effective_filename = filename or (file.filename if file else None)
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts}] [analyze-answer-sheet] Received request | class_id={class_id} | topic_hint={topic_hint} | provider={provider} | source={req_source} | filename={effective_filename}")
+    safe_print(f"[{ts}] [analyze-answer-sheet] Received request | class_id={class_id} | topic_hint={topic_hint} | provider={provider} | source={req_source} | filename={effective_filename}")
 
     if not file and not image_base64:
         raise HTTPException(status_code=400, detail="No image provided. Supply 'file' or 'image_base64'.")
@@ -73,10 +74,10 @@ async def analyze_answer_sheet_api(
     if file:
         raw_content = await file.read()
         image_input = base64.b64encode(raw_content).decode("utf-8")
-        print(f"[{ts}] [analyze-answer-sheet] File upload received | size={len(raw_content)} bytes | filename={file.filename}")
+        safe_print(f"[{ts}] [analyze-answer-sheet] File upload received | size={len(raw_content)} bytes | filename={file.filename}")
     elif image_base64:
         image_input = image_base64
-        print(f"[{ts}] [analyze-answer-sheet] Base64 image received | length={len(image_base64)} chars")
+        safe_print(f"[{ts}] [analyze-answer-sheet] Base64 image received | length={len(image_base64)} chars")
 
     # Storage Separation: If live upload, save permanently in uploads/live/{class_id}/
     saved_image_path = None
@@ -98,9 +99,9 @@ async def analyze_answer_sheet_api(
                 with open(saved_file_abs, "wb") as f_out:
                     f_out.write(base64.b64decode(b64_clean))
             saved_image_path = os.path.relpath(saved_file_abs, project_root).replace("\\", "/")
-            print(f"[{ts}] [analyze-answer-sheet] Saved LIVE upload to {saved_image_path}")
+            safe_print(f"[{ts}] [analyze-answer-sheet] Saved LIVE upload to {saved_image_path}")
         except Exception as save_err:
-            print(f"[{ts}] [analyze-answer-sheet] Warning saving live upload file: {save_err}")
+            safe_print(f"[{ts}] [analyze-answer-sheet] Warning saving live upload file: {save_err}")
     else:
         saved_image_path = f"demo_data/{effective_filename}" if effective_filename else "demo_data/sample.jpg"
 
@@ -118,7 +119,7 @@ async def analyze_answer_sheet_api(
         req_api_key = None
         req_model = model or sys_settings.get("local_model", "gemma4:latest")
 
-    print(f"[{ts}] [analyze-answer-sheet] Routing to provider='{req_provider}' | model='{req_model}'")
+    safe_print(f"[{ts}] [analyze-answer-sheet] Routing to provider='{req_provider}' | model='{req_model}'")
 
     # Fetch available topics scoped to class_id for context
     topic_query = db.query(TopicDB)
@@ -143,7 +144,7 @@ async def analyze_answer_sheet_api(
     )
 
     ts2 = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(
+    safe_print(
         f"[{ts2}] [analyze-answer-sheet] Diagnosis complete | "
         f"Topic='{diagnosis.detected_topic}' | "
         f"Score={diagnosis.overall_score:.2f} | "
@@ -190,7 +191,7 @@ async def analyze_answer_sheet_api(
             else:
                 updated_schedule_dict = updated_sched_obj
         except Exception as submit_err:
-            print(f"[{ts2}] Warning: submit_performance failed: {submit_err}")
+            safe_print(f"[{ts2}] Warning: submit_performance failed: {submit_err}")
 
         # TTS announcement
         try:
@@ -199,7 +200,7 @@ async def analyze_answer_sheet_api(
                 f"Student scored {diagnosis.overall_score * 100:.0f} percent."
             )
         except Exception as tts_err:
-            print(f"[{ts2}] TTS warning: {tts_err}")
+            safe_print(f"[{ts2}] TTS warning: {tts_err}")
 
     diag_dict = diagnosis.model_dump(mode='json') if hasattr(diagnosis, 'model_dump') else diagnosis.dict()
 
@@ -225,7 +226,7 @@ async def ingest_syllabus_api(
     db: Session = Depends(get_db)
 ):
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts}] [ingest-syllabus] Received | class_id={class_id} | provider={provider}")
+    safe_print(f"[{ts}] [ingest-syllabus] Received | class_id={class_id} | provider={provider}")
 
     if not file and not image_base64:
         raise HTTPException(status_code=400, detail="No document provided.")
@@ -447,7 +448,7 @@ def seed_demo_data(
             created_count += 1
 
     db.commit()
-    print(f"[{ts}] [seed-demo-data] Reset={reset} | Created={created_count} | Skipped={skipped_count}")
+    safe_print(f"[{ts}] [seed-demo-data] Reset={reset} | Created={created_count} | Skipped={skipped_count}")
 
     # Return info about demo sample images
     # backend/app/api/ -> ../../../ = project root

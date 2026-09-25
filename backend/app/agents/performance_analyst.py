@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
 from backend.app.agents.model_client import model_client
+from backend.app.agents.logger_util import safe_print
 
 
 def _ts() -> str:
@@ -52,9 +53,9 @@ class PerformanceAnalystAgent:
             if os.path.exists(t_path):
                 with open(t_path, "r", encoding="utf-8") as f:
                     self.transcripts = json.load(f)
-                print(f"[{_ts()}] [PerformanceAnalystAgent] Loaded {len(self.transcripts)} transcripts from {t_path}")
+                safe_print(f"[{_ts()}] [PerformanceAnalystAgent] Loaded {len(self.transcripts)} transcripts from {t_path}")
         except Exception as e:
-            print(f"[{_ts()}] [PerformanceAnalystAgent] Could not load demo transcripts: {e}")
+            safe_print(f"[{_ts()}] [PerformanceAnalystAgent] Could not load demo transcripts: {e}")
 
     def analyze_answer_sheet(
         self,
@@ -81,7 +82,7 @@ class PerformanceAnalystAgent:
             bname = os.path.basename(filename)
             transcript = self.transcripts.get(bname)
 
-        print(f"[{ts}] [PerformanceAnalystAgent] Starting analysis | Provider={provider} | ClassID={class_id or 'default'} | File={filename or 'none'} | Transcript={'FOUND' if transcript else 'NONE'} | Image={'YES' if base64_image else 'NO'}")
+        safe_print(f"[{ts}] [PerformanceAnalystAgent] Starting analysis | Provider={provider} | ClassID={class_id or 'default'} | File={filename or 'none'} | Transcript={'FOUND' if transcript else 'NONE'} | Image={'YES' if base64_image else 'NO'}")
 
         system_prompt = (
             "You are an expert academic evaluator AI with OCR capability. "
@@ -130,7 +131,7 @@ class PerformanceAnalystAgent:
                 "The diagnosis MUST reflect what is actually written in the image, not generic content."
             )
 
-        print(f"[{ts}] [AI Pipeline] Sending to provider='{provider}' | Hint='{topic_hint}' | Image attached: {bool(base64_image)} | Transcript: {bool(transcript)}")
+        safe_print(f"[{ts}] [AI Pipeline] Sending to provider='{provider}' | Hint='{topic_hint}' | Image attached: {bool(base64_image)} | Transcript: {bool(transcript)}")
 
         raw_response = self.client.generate(
             prompt=prompt,
@@ -142,7 +143,7 @@ class PerformanceAnalystAgent:
         )
 
         ts2 = _ts()
-        print(f"[{ts2}] [AI Pipeline Raw Output] Length={len(raw_response)} chars | First 400: {repr(raw_response[:400])}")
+        safe_print(f"[{ts2}] [AI Pipeline Raw Output] Length={len(raw_response)} chars | First 400: {repr(raw_response[:400])}")
 
         return self._parse_diagnosis(raw_response, available_topics)
 
@@ -162,7 +163,7 @@ class PerformanceAnalystAgent:
                 with open(image_input, "rb") as f:
                     return base64.b64encode(f.read()).decode("utf-8")
             except Exception as e:
-                print(f"[{_ts()}] [PerformanceAnalystAgent] Error reading image file {image_input}: {e}")
+                safe_print(f"[{_ts()}] [PerformanceAnalystAgent] Error reading image file {image_input}: {e}")
 
         return None
 
@@ -192,7 +193,7 @@ class PerformanceAnalystAgent:
             # Check if the model returned a pipeline error
             if "_pipeline_error" in parsed:
                 reason = parsed.get("_pipeline_error", "Unknown pipeline error")
-                print(f"[{ts}] [PerformanceAnalystAgent] Pipeline error surfaced: {reason}")
+                safe_print(f"[{ts}] [PerformanceAnalystAgent] Pipeline error surfaced: {reason}")
                 return AnswerSheetDiagnosis(
                     overall_score=0.0,
                     detected_topic="Diagnosis unavailable",
@@ -235,7 +236,7 @@ class PerformanceAnalystAgent:
             overall_sc = float(parsed.get("overall_score", 0.0))
             detected = parsed.get("detected_topic", "Unknown Topic")
 
-            print(f"[{ts}] [PerformanceAnalystAgent] Parsed OK | Topic={detected} | Score={overall_sc:.2f} | Questions={len(breakdown_dict)}")
+            safe_print(f"[{ts}] [PerformanceAnalystAgent] Parsed OK | Topic={detected} | Score={overall_sc:.2f} | Questions={len(breakdown_dict)}")
 
             return AnswerSheetDiagnosis(
                 overall_score=max(0.0, min(1.0, overall_sc)),
@@ -247,7 +248,7 @@ class PerformanceAnalystAgent:
             )
 
         except Exception as err:
-            print(f"[{ts}] [PerformanceAnalystAgent] JSON parse error: {err} | Raw text (first 300): {raw_text[:300]}")
+            safe_print(f"[{ts}] [PerformanceAnalystAgent] JSON parse error: {err} | Raw text (first 300): {repr(raw_text[:300])}")
             # Surface the actual raw model text in the diagnostic summary so it's visible in the UI
             return AnswerSheetDiagnosis(
                 overall_score=0.0,

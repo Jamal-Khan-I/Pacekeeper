@@ -13,6 +13,7 @@ import urllib.request
 import urllib.error
 import json
 from typing import Dict, Any, Optional, List
+from backend.app.agents.logger_util import safe_print
 
 
 def _ts() -> str:
@@ -30,9 +31,9 @@ class OllamaClient:
         try:
             req = urllib.request.urlopen(f"{self.host}/api/tags", timeout=3)
             if req.status == 200:
-                data = json.loads(req.read().decode())
+                data = json.loads(req.read().decode("utf-8", errors="replace"))
                 models = [m.get("name") for m in data.get("models", [])]
-                print(f"[{_ts()}] [OllamaClient] Health check: connected | Models: {models}")
+                safe_print(f"[{_ts()}] [OllamaClient] Health check: connected | Models: {models}")
                 return {
                     "available": True,
                     "status": "connected",
@@ -40,7 +41,7 @@ class OllamaClient:
                     "default_model": self.default_model
                 }
         except Exception as e:
-            print(f"[{_ts()}] [OllamaClient] Health check: OFFLINE | Error: {e}")
+            safe_print(f"[{_ts()}] [OllamaClient] Health check: OFFLINE | Error: {e}")
 
         return {
             "available": False,
@@ -64,7 +65,7 @@ class OllamaClient:
         ts = _ts()
         model_to_use = model or self.default_model
 
-        print(
+        safe_print(
             f"[{ts}] [OllamaClient] Sending request | "
             f"Model: {model_to_use} | "
             f"Images: {len(images) if images else 0} | "
@@ -90,30 +91,33 @@ class OllamaClient:
             )
             res = urllib.request.urlopen(req, timeout=60)
             if res.status == 200:
-                resp_json = json.loads(res.read().decode())
+                resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 resp_text = resp_json.get("response", "")
                 ts2 = _ts()
-                print(
-                    f"[{ts2}] [OllamaClient] REAL RESPONSE RECEIVED | "
-                    f"Fallback Fired: False | "
-                    f"Model: {model_to_use} | "
-                    f"Length: {len(resp_text)} chars | "
-                    f"Raw preview: {repr(resp_text[:400])}"
-                )
+                try:
+                    safe_print(
+                        f"[{ts2}] [OllamaClient] REAL RESPONSE RECEIVED | "
+                        f"Fallback Fired: False | "
+                        f"Model: {model_to_use} | "
+                        f"Length: {len(resp_text)} chars | "
+                        f"Raw preview: {repr(resp_text[:400])}"
+                    )
+                except Exception:
+                    pass
                 if resp_text:
                     return resp_text
         except urllib.error.HTTPError as e:
-            err_body = e.read().decode() if hasattr(e, "read") else str(e)
+            err_body = e.read().decode("utf-8", errors="replace") if hasattr(e, "read") else str(e)
             ts2 = _ts()
-            print(f"[{ts2}] [OllamaClient] HTTP ERROR | Fallback Fired: True | Code: {e.code} | Body: {err_body}")
+            safe_print(f"[{ts2}] [OllamaClient] HTTP ERROR | Fallback Fired: True | Code: {e.code} | Body: {err_body}")
             return self._transparent_error(f"Ollama HTTP {e.code}: {err_body[:200]}")
         except Exception as e:
             ts2 = _ts()
-            print(f"[{ts2}] [OllamaClient] EXCEPTION | Fallback Fired: True | Error: {e}")
+            safe_print(f"[{ts2}] [OllamaClient] EXCEPTION | Fallback Fired: True | Error: {e}")
             return self._transparent_error(f"Ollama request failed: {e}")
 
         ts2 = _ts()
-        print(f"[{ts2}] [OllamaClient] EMPTY RESPONSE | Fallback Fired: True | Model: {model_to_use}")
+        safe_print(f"[{ts2}] [OllamaClient] EMPTY RESPONSE | Fallback Fired: True | Model: {model_to_use}")
         return self._transparent_error(f"Empty response from model '{model_to_use}'")
 
     def _transparent_error(self, reason: str) -> str:
@@ -121,7 +125,7 @@ class OllamaClient:
         Returns a transparent pipeline error JSON — absolutely NO hardcoded academic content.
         The PerformanceAnalystAgent parses _pipeline_error and surfaces it in the UI.
         """
-        print(f"[{_ts()}] [OllamaClient] _transparent_error: {reason}")
+        safe_print(f"[{_ts()}] [OllamaClient] _transparent_error: {reason}")
         return json.dumps({
             "overall_score": 0.0,
             "detected_topic": "Unable to determine — Ollama pipeline error",

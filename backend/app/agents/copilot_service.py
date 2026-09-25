@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.agents.model_client import model_client
 from backend.app.agents.performance_analyst import performance_analyst_agent
+from backend.app.agents.logger_util import safe_print
 from backend.app.api.system import get_current_system_settings
 from backend.app.api.schedule import execute_and_persist_schedule
 from backend.app.services.notifications import notify_upcoming_revisions
@@ -153,7 +154,7 @@ class TeacherCopilotService:
                 updated_schedule = schedule_dict
 
             except Exception as e:
-                print(f"[Copilot Error] Image diagnosis failed: {e}")
+                safe_print(f"[Copilot Error] Image diagnosis failed: {e}")
 
         # -------------------------------------------------------------
         # TOOL 2: Reschedule Curriculum On Command
@@ -254,6 +255,18 @@ class TeacherCopilotService:
                     api_key=api_key,
                     model=model
                 )
+                if reply_text and reply_text.strip().startswith("{") and "_pipeline_error" in reply_text:
+                    try:
+                        err_json = json.loads(reply_text.strip())
+                        err_reason = err_json.get("_pipeline_error") or err_json.get("diagnostic_summary")
+                        reply_text = (
+                            f"**Teacher Copilot [{provider.capitalize()} Mode]**\n\n"
+                            f"I processed your classroom request for **{class_label}**.\n"
+                            f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.\n\n"
+                            f"*(Note from local AI model: {err_reason})*"
+                        )
+                    except Exception:
+                        pass
             except Exception as e:
                 reply_text = (
                     f"**Teacher Copilot [{provider.capitalize()} Mode]**\n\n"

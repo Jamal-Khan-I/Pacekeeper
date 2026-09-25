@@ -9,6 +9,7 @@ import urllib.error
 import base64
 import datetime
 from typing import Dict, Any, Optional, List, Union
+from backend.app.agents.logger_util import safe_print
 
 
 def _ts() -> str:
@@ -131,14 +132,14 @@ class UnifiedModelClient:
             )
             res = urllib.request.urlopen(req, timeout=15)
             if res.status == 200:
-                resp_json = json.loads(res.read().decode())
+                resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 candidates = resp_json.get("candidates", [])
                 if candidates:
                     parts_resp = candidates[0].get("content", {}).get("parts", [])
                     if parts_resp:
                         return parts_resp[0].get("text", "")
         except Exception as e:
-            print(f"Gemini API error: {e}")
+            safe_print(f"Gemini API error: {e}")
 
         return self._cloud_fallback_response(prompt, images, provider=f"Gemini Cloud ({model})")
 
@@ -191,12 +192,12 @@ class UnifiedModelClient:
             )
             res = urllib.request.urlopen(req, timeout=15)
             if res.status == 200:
-                resp_json = json.loads(res.read().decode())
+                resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 choices = resp_json.get("choices", [])
                 if choices:
                     return choices[0].get("message", {}).get("content", "")
         except Exception as e:
-            print(f"Groq API error: {e}")
+            safe_print(f"Groq API error: {e}")
 
         return self._cloud_fallback_response(prompt, images, provider=f"Groq Cloud ({model})")
 
@@ -232,12 +233,12 @@ class UnifiedModelClient:
             )
             res = urllib.request.urlopen(req, timeout=15)
             if res.status == 200:
-                resp_json = json.loads(res.read().decode())
+                resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 choices = resp_json.get("choices", [])
                 if choices:
                     return choices[0].get("message", {}).get("content", "")
         except Exception as e:
-            print(f"OpenAI API error: {e}")
+            safe_print(f"OpenAI API error: {e}")
 
         return self._cloud_fallback_response(prompt, images, provider=f"OpenAI Cloud ({model})")
 
@@ -275,12 +276,12 @@ class UnifiedModelClient:
             )
             res = urllib.request.urlopen(req, timeout=15)
             if res.status == 200:
-                resp_json = json.loads(res.read().decode())
+                resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 content_list = resp_json.get("content", [])
                 if content_list:
                     return content_list[0].get("text", "")
         except Exception as e:
-            print(f"Claude API error: {e}")
+            safe_print(f"Claude API error: {e}")
 
         return self._cloud_fallback_response(prompt, images, provider=f"Anthropic Claude ({model})")
 
@@ -299,10 +300,10 @@ class UnifiedModelClient:
         try:
             req_tags = urllib.request.urlopen(f"{self.ollama_host}/api/tags", timeout=3)
             if req_tags.status == 200:
-                tags_data = json.loads(req_tags.read().decode())
+                tags_data = json.loads(req_tags.read().decode("utf-8", errors="replace"))
                 installed_models = [m.get("name") for m in tags_data.get("models", [])]
         except Exception as e:
-            print(f"[{ts}] [AI Pipeline] Provider: local | Ollama Unreachable: {e}")
+            safe_print(f"[{ts}] [AI Pipeline] Provider: local | Ollama Unreachable: {e}")
             return self._error_response(f"Ollama unreachable: {e}")
 
         # 2. Pick best model for the request type
@@ -328,7 +329,7 @@ class UnifiedModelClient:
                 model_to_use = installed_models[0] if installed_models else "gemma4:latest"
 
         has_images = bool(images)
-        print(f"[{ts}] [AI Pipeline] Provider: local | Model: {model_to_use} | Images: {len(images) if images else 0} | Fallback Fired: False")
+        safe_print(f"[{ts}] [AI Pipeline] Provider: local | Model: {model_to_use} | Images: {len(images) if images else 0} | Fallback Fired: False")
 
         payload: dict = {
             "model": model_to_use,
@@ -349,30 +350,33 @@ class UnifiedModelClient:
             )
             res = urllib.request.urlopen(req, timeout=60)
             if res.status == 200:
-                resp_json = json.loads(res.read().decode())
+                resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 resp_text = resp_json.get("response", "")
                 ts2 = _ts()
-                print(f"[{ts2}] [AI Pipeline Raw Output] Model={model_to_use} | Preview: {repr(resp_text[:400])}")
+                try:
+                    safe_print(f"[{ts2}] [AI Pipeline Raw Output] Model={model_to_use} | Preview: {repr(resp_text[:400])}")
+                except Exception:
+                    pass
                 if resp_text:
                     return resp_text
         except urllib.error.HTTPError as e:
-            err_body = e.read().decode() if hasattr(e, "read") else str(e)
+            err_body = e.read().decode("utf-8", errors="replace") if hasattr(e, "read") else str(e)
             ts2 = _ts()
-            print(f"[{ts2}] [AI Pipeline] Provider: local | Model: {model_to_use} | HTTP Error {e.code}: {err_body}")
+            safe_print(f"[{ts2}] [AI Pipeline] Provider: local | Model: {model_to_use} | HTTP Error {e.code}: {err_body}")
             return self._error_response(f"Ollama HTTP {e.code} error: {err_body}")
         except Exception as e:
             ts2 = _ts()
-            print(f"[{ts2}] [AI Pipeline] Provider: local | Model: {model_to_use} | Fallback Fired: True | Error: {e}")
+            safe_print(f"[{ts2}] [AI Pipeline] Provider: local | Model: {model_to_use} | Fallback Fired: True | Error: {e}")
             return self._error_response(f"Ollama request failed: {e}")
 
         ts2 = _ts()
-        print(f"[{ts2}] [AI Pipeline] Provider: local | Model: {model_to_use} | Fallback Fired: True | Empty response from model")
+        safe_print(f"[{ts2}] [AI Pipeline] Provider: local | Model: {model_to_use} | Fallback Fired: True | Empty response from model")
         return self._error_response(f"Empty response from {model_to_use}")
 
     def _error_response(self, reason: str) -> str:
         """Returns a transparent error JSON rather than hardcoded Calculus fixture."""
         ts = _ts()
-        print(f"[{ts}] [AI Pipeline] Fallback Fired: True | Reason: {reason}")
+        safe_print(f"[{ts}] [AI Pipeline] Fallback Fired: True | Reason: {reason}")
         return json.dumps({
             "overall_score": 0.0,
             "detected_topic": "Unable to determine — AI pipeline error",
@@ -386,14 +390,17 @@ class UnifiedModelClient:
         """Transparent fallback — no hardcoded content, returns honest error for surface-level feedback."""
         ts = _ts()
         reason = f"Provider '{provider}' unavailable or returned empty response"
-        print(f"[{ts}] [AI Pipeline] Provider: {provider} | Fallback Fired: True | Reason: {reason}")
+        safe_print(f"[{ts}] [AI Pipeline] Provider: {provider} | Fallback Fired: True | Reason: {reason}")
         return self._error_response(reason)
 
     def _cloud_log(self, ts: str, provider: str, model: str, fallback: bool, raw_preview: str = "") -> None:
         """Unified log line for all cloud providers."""
-        print(f"[{ts}] [AI Pipeline] Provider: {provider} | Model: {model} | Fallback Fired: {fallback}")
+        safe_print(f"[{ts}] [AI Pipeline] Provider: {provider} | Model: {model} | Fallback Fired: {fallback}")
         if raw_preview:
-            print(f"[{ts}] [AI Pipeline Raw Output] Provider={provider} | Preview: {repr(raw_preview[:400])}")
+            try:
+                safe_print(f"[{ts}] [AI Pipeline Raw Output] Provider={provider} | Preview: {repr(raw_preview[:400])}")
+            except Exception:
+                pass
 
     def test_connection(self, provider: str, api_key: str, model: Optional[str] = None) -> Dict[str, Any]:
         """Validates API Key with lightweight ping request."""
