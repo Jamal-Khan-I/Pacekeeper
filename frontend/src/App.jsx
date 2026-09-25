@@ -40,6 +40,9 @@ export default function App() {
 
   const handleTierChange = (newTier) => {
     setActiveTier(newTier);
+    if (newTier === 'free') {
+      setIsCopilotOpen(false);
+    }
     api.updateSystemSettings({ active_tier: newTier }).catch(err => console.error(err));
   };
 
@@ -398,21 +401,23 @@ export default function App() {
         onSettingsSaved={() => loadData()}
       />
 
-      {/* Teacher Copilot Multimodal Agent Modal */}
-      <TeacherCopilotModal
-        isOpen={isCopilotOpen}
-        onClose={() => setIsCopilotOpen(false)}
-        activeClassId={activeClassId}
-        activeTier={activeTier}
-        onScheduleUpdated={() => handleClassChange(activeClassId)}
-        onOpenSettings={() => {
-          setIsCopilotOpen(false);
-          setIsSettingsModalOpen(true);
-        }}
-      />
+      {/* Teacher Copilot Multimodal Agent Modal: EXCLUSIVELY for Local LLM & Cloud Tiers */}
+      {activeTier !== 'free' && (
+        <TeacherCopilotModal
+          isOpen={isCopilotOpen}
+          onClose={() => setIsCopilotOpen(false)}
+          activeClassId={activeClassId}
+          activeTier={activeTier}
+          onScheduleUpdated={() => handleClassChange(activeClassId)}
+          onOpenSettings={() => {
+            setIsCopilotOpen(false);
+            setIsSettingsModalOpen(true);
+          }}
+        />
+      )}
 
-      {/* Floating Copilot Quick-Open Button */}
-      {!isCopilotOpen && (
+      {/* Floating Copilot Quick-Open Button: EXCLUSIVELY for Local LLM & Cloud Tiers */}
+      {activeTier !== 'free' && !isCopilotOpen && (
         <button
           onClick={() => setIsCopilotOpen(true)}
           className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 text-white font-extrabold text-xs shadow-2xl shadow-purple-950/80 hover:scale-105 border border-cyan-400/40 transition-all duration-300 group"
