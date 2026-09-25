@@ -234,9 +234,7 @@ export default function App() {
       <Header
         activeTier={activeTier}
         setActiveTier={handleTierChange}
-        hardwareInfo={hardwareInfo}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
-        onOpenCopilot={() => setIsCopilotOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto px-6 flex-1 w-full">

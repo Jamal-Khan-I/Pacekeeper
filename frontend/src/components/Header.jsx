@@ -1,11 +1,10 @@
 import React from 'react';
-import { Cpu, Zap, Bot, Cloud, CheckCircle2, Sparkles, Settings } from 'lucide-react';
+import { Zap, Bot, Cloud, Sparkles } from 'lucide-react';
 
-export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpenSettings, onOpenCopilot }) {
+export default function Header({ activeTier, setActiveTier, onOpenSettings }) {
   const handleSelectCloud = () => {
     setActiveTier('cloud');
-    const hasKey = localStorage.getItem('pk_gemini_key') || localStorage.getItem('pk_groq_key');
-    if (!hasKey && onOpenSettings) {
+    if (onOpenSettings) {
       onOpenSettings();
     }
   };
@@ -29,60 +28,52 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
           </div>
         </div>
 
-        {/* Three-Tier Mode Switcher Toggle + Settings */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center p-1 bg-slate-900/80 rounded-xl border border-slate-800">
-            
-            {/* Free Tier */}
-            <button
-              onClick={() => setActiveTier('free')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                activeTier === 'free'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Free (Deterministic)</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            </button>
-
-            {/* Local Agent */}
-            <button
-              onClick={() => setActiveTier('local')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                activeTier === 'local'
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/25'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Bot className="w-3.5 h-3.5" />
-              <span>Local Agent</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Copilot AI</span>
-            </button>
-
-            {/* Cloud Agent */}
-            <button
-              onClick={handleSelectCloud}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                activeTier === 'cloud'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Cloud className="w-3.5 h-3.5" />
-              <span>Cloud Agent</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Copilot AI</span>
-            </button>
-          </div>
-
-          {/* Settings Button */}
+        {/* Three-Tier Mode Switcher Toggle */}
+        <div className="flex items-center p-1 bg-slate-900/80 rounded-xl border border-slate-800">
+          
+          {/* Free Tier */}
           <button
-            onClick={onOpenSettings}
-            title="Configure API Keys & Cloud Models"
-            className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-gray-300 hover:text-white transition-all shadow-md"
+            onClick={() => setActiveTier('free')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTier === 'free'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
+            }`}
           >
-            <Settings className="w-4 h-4 text-blue-400" />
+            <Zap className="w-3.5 h-3.5" />
+            <span>Free (Deterministic)</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </button>
+
+          {/* Local Agent */}
+          <button
+            onClick={() => setActiveTier('local')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTier === 'local'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/25'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Bot className="w-3.5 h-3.5" />
+            <span>Local Agent</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Copilot AI</span>
+          </button>
+
+          {/* Cloud Agent (Clicking configures API Keys) */}
+          <button
+            onClick={handleSelectCloud}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTier === 'cloud'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
+            }`}
+            title="Cloud Agent (Click to configure API Keys)"
+          >
+            <Cloud className="w-3.5 h-3.5" />
+            <span>Cloud Agent</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              {activeTier === 'cloud' ? 'API Key ⚙' : 'Copilot AI'}
+            </span>
           </button>
         </div>
 
@@ -105,18 +96,9 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400 shrink-0 animate-pulse" />
             <span>
-              <strong>Local Agent Active (Phase 4 - Ollama & LangGraph):</strong> Multimodal Teacher Copilot with voice speech, vision diagnosis for student exam sheets, and automated rescheduling.
+              <strong>Local Agent Active (Ollama):</strong> Multimodal Teacher Copilot with voice speech, vision diagnosis for student exam sheets, and automated rescheduling.
             </span>
           </div>
-          {onOpenCopilot && (
-            <button
-              onClick={onOpenCopilot}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-950/50 transition ml-3 shrink-0"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-purple-200" />
-              <span>Launch Copilot</span>
-            </button>
-          )}
         </div>
       )}
 
@@ -125,25 +107,8 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
           <div className="flex items-center gap-2">
             <Cloud className="w-4 h-4 text-blue-400 shrink-0" />
             <span>
-              <strong>Cloud Agent Active (Phase 5 - Gemini 1.5 & Groq):</strong> Full Multimodal Teacher Copilot with cloud vision, speech synthesis, and autonomous timetable tool execution.
+              <strong>Cloud Agent Active (Gemini & Groq):</strong> Full Multimodal Teacher Copilot with cloud vision, speech synthesis, and autonomous timetable tool execution.
             </span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 ml-3">
-            {onOpenCopilot && (
-              <button
-                onClick={onOpenCopilot}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-950/50 transition"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
-                <span>Launch Copilot</span>
-              </button>
-            )}
-            <button
-              onClick={onOpenSettings}
-              className="text-[11px] font-bold text-blue-300 hover:text-white underline"
-            >
-              Keys & Models →
-            </button>
           </div>
         </div>
       )}
