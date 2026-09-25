@@ -11,7 +11,7 @@ import PriorityReasoningModal from './components/PriorityReasoningModal';
 import SettingsModal from './components/SettingsModal';
 import ClassSelector from './components/ClassSelector';
 import TeacherCopilotModal from './components/TeacherCopilotModal';
-import { Award, Sparkles, RefreshCw, Database, CheckCircle2, AlertTriangle, Bot, Lock } from 'lucide-react';
+import { Award, Sparkles, RefreshCw, Bot } from 'lucide-react';
 
 export default function App() {
   const [activeTier, setActiveTier] = useState('free');
@@ -30,10 +30,6 @@ export default function App() {
   const [reasoningTopicId, setReasoningTopicId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [replanning, setReplanning] = useState(false);
-
-  // Demo data seed state (Part C)
-  const [seeding, setSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState(null);
 
   // Currently visible topics = topics for the active class
   const topics = allTopics[activeClassId] || [];
@@ -139,24 +135,6 @@ export default function App() {
       setScheduleData(schedule);
     } catch { /* ignore */ }
   }, [allTopics]);
-
-  const handleSeedDemoData = async () => {
-    setSeeding(true);
-    setSeedResult(null);
-    try {
-      const result = await api.seedDemoData();
-      setSeedResult({ success: true, msg: `✓ Seeded ${result.topics_created} topics across ${result.classes_seeded?.length} classes.` });
-      const newTopics = await loadAllTopics();
-      setAllTopics(newTopics);
-      const schedule = await api.generateSchedule(activeClassId);
-      setScheduleData(schedule);
-    } catch (err) {
-      setSeedResult({ success: false, msg: `Seed failed: ${err.message}` });
-    } finally {
-      setSeeding(false);
-      setTimeout(() => setSeedResult(null), 5000);
-    }
-  };
 
   const handleCreateTopic = async (topicData) => {
     try {
@@ -278,17 +256,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Seed Demo Data Button (Part C) */}
-            <button
-              onClick={handleSeedDemoData}
-              disabled={seeding}
-              id="seed-demo-btn"
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-amber-900/50 hover:bg-amber-900/80 text-amber-200 border border-amber-500/30 transition-all"
-            >
-              <Database className={`w-3.5 h-3.5 ${seeding ? 'animate-pulse' : ''}`} />
-              {seeding ? 'Seeding...' : 'Seed Demo Data'}
-            </button>
-
             {/* Teacher Copilot Launch Button: ONLY for Local LLM & Cloud Tiers */}
             {activeTier !== 'free' && (
               <button
@@ -323,20 +290,6 @@ export default function App() {
             </button>
           </div>
         </div>
-
-        {/* Seed Result Toast */}
-        {seedResult && (
-          <div className={`mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold animate-banner border ${
-            seedResult.success
-              ? 'bg-emerald-900/30 border-emerald-500/40 text-emerald-300'
-              : 'bg-rose-900/30 border-rose-500/40 text-rose-300'
-          }`}>
-            {seedResult.success
-              ? <CheckCircle2 className="w-4 h-4 shrink-0" />
-              : <AlertTriangle className="w-4 h-4 shrink-0" />}
-            {seedResult.msg}
-          </div>
-        )}
 
         {loading ? (
           <div className="glass-panel rounded-2xl p-12 text-center text-gray-400">

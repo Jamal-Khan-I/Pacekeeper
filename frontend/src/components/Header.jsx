@@ -1,45 +1,68 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Zap, Bot, Cloud, ChevronDown, X, Sparkles } from 'lucide-react';
+import { Zap, Bot, Cloud, ChevronDown, X, Check } from 'lucide-react';
 
 const TIER_DETAILS = {
   free: {
+    id: 'free',
     name: 'Free Mode (Deterministic)',
+    shortName: 'Free (Deterministic)',
     badge: 'Offline / Zero Latency',
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     icon: Zap,
     iconColor: 'text-indigo-400',
     borderColor: 'border-indigo-500/40',
-    description: 'Pure deterministic, zero-latency spaced revision & lesson planner engine. All core mathematical scoring, calendar constraint handling, and auto-replanning operate locally without external LLMs.'
+    accentGrad: 'from-indigo-600 to-purple-600',
+    description: 'Pure deterministic mathematical priority engine. All syllabus scoring, spaced revision scheduling, calendar constraints, and test-score auto-replanning operate locally in real-time with zero external LLMs and zero API keys.',
+    highlights: [
+      '100% Offline & deterministic mathematical scheduling',
+      'Class roster & gradebook CSV imports (30–60+ students)',
+      'Automated spacing curve & decay formula recalculations'
+    ]
   },
   local: {
+    id: 'local',
     name: 'Local Agent (Ollama)',
+    shortName: 'Local Agent',
     badge: 'Private / Local AI',
     badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
     icon: Bot,
     iconColor: 'text-purple-400',
     borderColor: 'border-purple-500/40',
-    description: 'Multimodal Teacher Copilot with voice speech, vision diagnosis for student exam sheets, and automated rescheduling.'
+    accentGrad: 'from-purple-600 to-pink-600',
+    description: 'Private multimodal Teacher Copilot running on your local machine using Ollama (Llama 3 / Gemma). Supports teacher voice speech, exam sheet vision diagnosis, and automated calendar rescheduling with complete data privacy.',
+    highlights: [
+      'Private on-device inference via Ollama',
+      'Multimodal Teacher Copilot with voice & vision',
+      'Zero student score data leaves your computer'
+    ]
   },
   cloud: {
+    id: 'cloud',
     name: 'Cloud Agent (Gemini & Groq)',
+    shortName: 'Cloud Agent',
     badge: 'High Performance / Cloud AI',
     badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
     icon: Cloud,
     iconColor: 'text-blue-400',
     borderColor: 'border-blue-500/40',
-    description: 'Full Multimodal Teacher Copilot with cloud vision, speech synthesis, and autonomous timetable tool execution.'
+    accentGrad: 'from-blue-600 to-indigo-600',
+    description: 'Ultra-fast multimodal Teacher Copilot powered by Google Gemini and Groq. Provides instant vision exam sheet diagnosis, autonomous tool execution for schedule restructuring, and speech synthesis.',
+    highlights: [
+      'Google Gemini 1.5 & Groq Llama 3 inference',
+      'Autonomous timetable rescheduling tool execution',
+      'Bring Your Own API Key (BYOK) stored in browser'
+    ]
   }
 };
 
 export default function Header({ activeTier, setActiveTier, onOpenSettings }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const dropdownRef = useRef(null);
+  const [activeInfoTier, setActiveInfoTier] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setActiveInfoTier(null);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -52,9 +75,6 @@ export default function Header({ activeTier, setActiveTier, onOpenSettings }) {
       onOpenSettings();
     }
   };
-
-  const current = TIER_DETAILS[activeTier] || TIER_DETAILS.free;
-  const CurrentIcon = current.icon;
 
   return (
     <header className="glass-panel border-b border-gray-800 sticky top-0 z-40 px-6 py-4 mb-6">
@@ -75,155 +95,129 @@ export default function Header({ activeTier, setActiveTier, onOpenSettings }) {
           </div>
         </div>
 
-        {/* Three-Tier Mode Switcher Toggle + Down Arrow Info Dropdown */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center p-1 bg-slate-900/80 rounded-xl border border-slate-800">
-            
-            {/* Free Tier */}
-            <button
-              onClick={() => setActiveTier('free')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                activeTier === 'free'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Free (Deterministic)</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            </button>
+        {/* Three-Tier Mode Switcher with Per-Tab Info Arrows */}
+        <div ref={containerRef} className="relative flex items-center p-1 bg-slate-900/80 rounded-xl border border-slate-800 gap-1">
+          {Object.entries(TIER_DETAILS).map(([tierKey, info]) => {
+            const Icon = info.icon;
+            const isActive = activeTier === tierKey;
+            const isInfoOpen = activeInfoTier === tierKey;
 
-            {/* Local Agent */}
-            <button
-              onClick={() => setActiveTier('local')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                activeTier === 'local'
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/25'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Bot className="w-3.5 h-3.5" />
-              <span>Local Agent</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Copilot AI</span>
-            </button>
+            return (
+              <div key={tierKey} className="relative">
+                {/* Mode Tab Button */}
+                <div
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 select-none cursor-pointer ${
+                    isActive
+                      ? `bg-gradient-to-r ${info.accentGrad} text-white shadow-md shadow-indigo-500/25`
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
+                  }`}
+                  onClick={() => {
+                    if (tierKey === 'cloud') handleSelectCloud();
+                    else setActiveTier(tierKey);
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{info.shortName}</span>
 
-            {/* Cloud Agent (Clicking configures API Keys) */}
-            <button
-              onClick={handleSelectCloud}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                activeTier === 'cloud'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/50'
-              }`}
-              title="Cloud Agent (Click to configure API Keys)"
-            >
-              <Cloud className="w-3.5 h-3.5" />
-              <span>Cloud Agent</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                {activeTier === 'cloud' ? 'API Key ⚙' : 'Copilot AI'}
-              </span>
-            </button>
-          </div>
-
-          {/* Hover / Click Down Arrow for Mode Info */}
-          <div
-            className="relative"
-            ref={dropdownRef}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            <button
-              onClick={() => setIsOpen(prev => !prev)}
-              className={`p-2 rounded-xl border transition-all duration-200 ${
-                isOpen || isHovered
-                  ? 'bg-slate-800 border-indigo-500/50 text-indigo-300 shadow-md shadow-indigo-500/20'
-                  : 'bg-slate-900/80 border-slate-800 text-gray-400 hover:text-gray-200 hover:bg-slate-800/60'
-              }`}
-              title="Mode details & architecture (Hover or click to view)"
-              aria-label="Toggle tier information"
-            >
-              <ChevronDown
-                className={`w-4 h-4 transition-transform duration-200 ${
-                  isOpen || isHovered ? 'rotate-180 text-indigo-400' : ''
-                }`}
-              />
-            </button>
-
-            {/* Floating Popover Card */}
-            {(isOpen || isHovered) && (
-              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl shadow-black/80 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`p-2 rounded-xl bg-slate-800/90 border ${current.borderColor}`}>
-                      <CurrentIcon className={`w-4 h-4 ${current.iconColor}`} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-gray-100 flex items-center gap-2">
-                        <span>{current.name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${current.badgeColor}`}>
-                          Active
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-400">Mode Overview & Capabilities</p>
-                    </div>
-                  </div>
-                  {isOpen && (
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className="text-gray-400 hover:text-gray-200 p-1 rounded-lg hover:bg-slate-800 transition"
-                      title="Close"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                  {tierKey === 'free' && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   )}
+
+                  {tierKey === 'cloud' && (
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      {isActive ? '⚙' : 'AI'}
+                    </span>
+                  )}
+
+                  {tierKey === 'local' && (
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      AI
+                    </span>
+                  )}
+
+                  {/* Small down arrow inside each name to open info about that tier */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveInfoTier(prev => (prev === tierKey ? null : tierKey));
+                    }}
+                    className={`p-0.5 rounded transition-all ml-0.5 ${
+                      isInfoOpen
+                        ? 'bg-white/25 text-white rotate-180'
+                        : 'text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                    title={`Click to read info about ${info.name}`}
+                    aria-label={`Toggle info for ${info.name}`}
+                  >
+                    <ChevronDown className="w-3 h-3 transition-transform duration-200" />
+                  </button>
                 </div>
 
-                <div className="text-xs text-gray-300 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800/90">
-                  {current.description}
-                </div>
-
-                {/* All Available Engines Quick View */}
-                <div className="mt-3 pt-2.5 border-t border-slate-800/80">
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 block mb-1.5">
-                    Switch Engine
-                  </span>
-                  <div className="space-y-1">
-                    {Object.entries(TIER_DETAILS).map(([tierKey, info]) => {
-                      const Icon = info.icon;
-                      const isActive = activeTier === tierKey;
-                      return (
-                        <button
-                          key={tierKey}
-                          onClick={() => {
-                            if (tierKey === 'cloud') handleSelectCloud();
-                            else setActiveTier(tierKey);
-                            setIsOpen(false);
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] transition flex items-center justify-between ${
-                            isActive
-                              ? 'bg-slate-800/90 text-white font-medium border border-slate-700/80'
-                              : 'text-gray-400 hover:text-gray-200 hover:bg-slate-800/40'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Icon className={`w-3.5 h-3.5 ${info.iconColor}`} />
+                {/* Per-Tab Info Popover */}
+                {isInfoOpen && (
+                  <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2.5 w-80 sm:w-88 p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl shadow-black/90 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-2 rounded-xl bg-slate-800/90 border ${info.borderColor}`}>
+                          <Icon className={`w-4 h-4 ${info.iconColor}`} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-gray-100 flex items-center gap-1.5 flex-wrap">
                             <span>{info.name}</span>
-                          </div>
-                          {isActive ? (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-                              Active
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full border font-semibold ${info.badgeColor}`}>
+                              {info.badge}
                             </span>
-                          ) : (
-                            <span className="text-[10px] text-gray-500 hover:text-indigo-400 font-medium">Select →</span>
-                          )}
-                        </button>
-                      );
-                    })}
+                          </div>
+                          <p className="text-[10px] text-gray-400">
+                            {isActive ? '● Currently Active Mode' : 'Click tab to activate'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveInfoTier(null)}
+                        className="text-gray-400 hover:text-gray-200 p-1 rounded-lg hover:bg-slate-800 transition"
+                        title="Close"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="text-xs text-gray-300 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800/90 mb-3">
+                      {info.description}
+                    </div>
+
+                    <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 block mb-1">
+                        Key Capabilities
+                      </span>
+                      {info.highlights.map((h, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-[11px] text-gray-300">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>{h}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {!isActive && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tierKey === 'cloud') handleSelectCloud();
+                          else setActiveTier(tierKey);
+                          setActiveInfoTier(null);
+                        }}
+                        className={`mt-3 w-full py-1.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r ${info.accentGrad} text-white shadow-md transition hover:opacity-90`}
+                      >
+                        Switch to {info.shortName}
+                      </button>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })}
         </div>
 
       </div>
