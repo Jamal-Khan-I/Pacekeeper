@@ -29,14 +29,6 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
           </div>
         </div>
 
-        {/* Hardware Auto-Detection Badge */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-gray-400">
-          <Cpu className="w-4 h-4 text-indigo-400" />
-          <span>{hardwareInfo.cpuCores} Cores • {hardwareInfo.ramGB}GB RAM</span>
-          <span className="text-slate-600">•</span>
-          <span className="text-indigo-300 font-medium">Rec: {hardwareInfo.recommendedTier.toUpperCase()}</span>
-        </div>
-
         {/* Three-Tier Mode Switcher Toggle + Settings */}
         <div className="flex items-center gap-2">
           <div className="flex items-center p-1 bg-slate-900/80 rounded-xl border border-slate-800">
