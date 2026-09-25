@@ -31,6 +31,15 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [replanning, setReplanning] = useState(false);
 
+  // Theme Management (Cyber Mode, Dark Mode, White Mode)
+  const [theme, setTheme] = useState(() => localStorage.getItem('pacekeeper_theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('pacekeeper_theme', theme);
+  }, [theme]);
+
   // Currently visible topics = topics for the active class
   const topics = allTopics[activeClassId] || [];
 
@@ -223,7 +232,9 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-gray-100 flex flex-col selection:bg-indigo-500 selection:text-white pb-12">
+    <div className={`min-h-screen app-container text-gray-100 flex flex-col selection:bg-indigo-500 selection:text-white pb-12 ${
+      theme === 'cyber' ? 'selection:bg-emerald-500 selection:text-black' : ''
+    }`}>
 
       {/* Header */}
       <Header
@@ -347,11 +358,13 @@ export default function App() {
         onClose={() => setReasoningTopicId(null)}
       />
 
-      {/* Cloud Tier Settings & API Key Modal */}
+      {/* System & Interface Settings Modal (Theme + AI Providers) */}
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
         onSettingsSaved={() => loadData()}
+        currentTheme={theme}
+        onThemeChange={(newTheme) => setTheme(newTheme)}
       />
 
       {/* Teacher Copilot Multimodal Agent Modal: EXCLUSIVELY for Local LLM & Cloud Tiers */}
