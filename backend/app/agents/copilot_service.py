@@ -86,6 +86,26 @@ class TeacherCopilotService:
         sched_obj = execute_and_persist_schedule(db, class_id=target_class)
         schedule_dict = sched_obj.model_dump(mode="json") if hasattr(sched_obj, "model_dump") else sched_obj.dict()
 
+        # -------------------------------------------------------------
+        # TIER ENFORCEMENT: Copilot AI is available ONLY in Local LLM & Cloud Tiers
+        # -------------------------------------------------------------
+        if active_tier == "free":
+            return {
+                "status": "locked",
+                "reply": "🔒 **Teacher Copilot AI is reserved for Local LLM and Cloud Tiers.**\n\n"
+                         "Free Tier runs strictly on deterministic heuristic algorithms. "
+                         "To unlock the multimodal voice/vision assistant, autonomous rescheduling, and schedule diagrams, "
+                         "switch to **Local LLM (Ollama)** or **Cloud Tier (Gemini/OpenAI)** in Settings.",
+                "spoken_text": "Teacher Copilot AI is available in Local LLM and Cloud Tiers. Please switch tiers in settings.",
+                "actions_taken": [],
+                "diagram_code": None,
+                "diagnosis": None,
+                "updated_schedule": None,
+                "notifications_count": 0,
+                "tier_used": "free",
+                "provider_used": "none"
+            }
+
         actions_taken = []
         diagnosis_result = None
         updated_schedule = None

@@ -11,7 +11,7 @@ import PriorityReasoningModal from './components/PriorityReasoningModal';
 import SettingsModal from './components/SettingsModal';
 import ClassSelector from './components/ClassSelector';
 import TeacherCopilotModal from './components/TeacherCopilotModal';
-import { Award, Sparkles, RefreshCw, Database, CheckCircle2, AlertTriangle, Bot } from 'lucide-react';
+import { Award, Sparkles, RefreshCw, Database, CheckCircle2, AlertTriangle, Bot, Lock } from 'lucide-react';
 
 export default function App() {
   const [activeTier, setActiveTier] = useState('free');
@@ -273,18 +273,33 @@ export default function App() {
               {seeding ? 'Seeding...' : 'Seed Demo Data'}
             </button>
 
-            {/* Teacher Copilot Launch Button */}
-            <button
-              onClick={() => setIsCopilotOpen(true)}
-              id="teacher-copilot-btn"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white shadow-xl shadow-indigo-500/25 transition-all transform hover:scale-[1.02] border border-cyan-400/30"
-            >
-              <Sparkles className="w-4 h-4 text-cyan-200" />
-              <span>Teacher Copilot (AI)</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 font-semibold uppercase">
-                {activeTier === 'free' ? 'Heuristic' : activeTier === 'local' ? 'Local LLM' : 'Cloud'}
-              </span>
-            </button>
+            {/* Teacher Copilot Launch Button: Exclusive to Local LLM & Cloud Tiers */}
+            {activeTier === 'free' ? (
+              <button
+                onClick={() => setIsSettingsModalOpen(true)}
+                id="teacher-copilot-btn"
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-900/90 hover:bg-slate-800 text-gray-400 border border-slate-800 hover:border-amber-500/40 transition-all group"
+                title="Teacher Copilot AI requires Local LLM (Ollama) or Cloud Tier. Click to configure in Settings."
+              >
+                <Lock className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400 transition-colors" />
+                <span className="text-gray-300">Teacher Copilot</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-amber-400/90 border border-amber-500/30 font-medium">
+                  Local / Cloud Only
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsCopilotOpen(true)}
+                id="teacher-copilot-btn"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white shadow-xl shadow-indigo-500/25 transition-all transform hover:scale-[1.02] border border-cyan-400/30"
+              >
+                <Sparkles className="w-4 h-4 text-cyan-200" />
+                <span>Teacher Copilot (AI)</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 font-semibold uppercase">
+                  {activeTier === 'local' ? 'Local LLM' : 'Cloud'}
+                </span>
+              </button>
+            )}
 
             <button
               onClick={() => setIsPerfModalOpen(true)}
