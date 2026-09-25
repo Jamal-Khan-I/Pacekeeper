@@ -1,0 +1,18 @@
+[package]
+name = "pacekeeper-desktop"
+version = "1.0.0"
+description = "Pacekeeper Desktop App"
+authors = ["Pacekeeper Team"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5.0", features = [] }
+
+[dependencies]
+tauri = { version = "1.6.0", features = [ "shell-open", "shell-execute", "shell-sidecar", "http-request"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
