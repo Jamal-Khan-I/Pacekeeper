@@ -72,4 +72,7 @@ export const api = {
 
   // Ollama Status
   getOllamaStatus: () => fetchJSON('/agents/ollama-status'),
+
+  // Teacher Copilot Interactive Agent
+  copilotChat: (payload) => fetchJSON('/agents/copilot/chat', { method: 'POST', body: JSON.stringify(payload) }),
 };

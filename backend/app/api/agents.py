@@ -488,3 +488,28 @@ def get_demo_images(class_id: str):
 def speak_explanation(payload: SpeakRequest):
     voice_tts.speak_text(payload.text)
     return {"status": "speaking", "text": payload.text[:100]}
+
+
+class CopilotChatRequest(BaseModel):
+    message: str
+    image_base64: Optional[str] = None
+    class_id: Optional[str] = "class_a"
+    history: Optional[List[Dict[str, str]]] = None
+
+
+@router.post("/copilot/chat")
+def copilot_chat_endpoint(payload: CopilotChatRequest, db: Session = Depends(get_db)):
+    """
+    Teacher Copilot Interactive AI Agent endpoint.
+    Handles multimodal voice/text messages, exam sheet images,
+    auto-rescheduling, diagram generation, and notification triggering.
+    """
+    from backend.app.agents.copilot_service import copilot_service
+    return copilot_service.process_copilot_request(
+        message=payload.message,
+        image_base64=payload.image_base64,
+        class_id=payload.class_id or "class_a",
+        db=db,
+        history=payload.history
+    )
+

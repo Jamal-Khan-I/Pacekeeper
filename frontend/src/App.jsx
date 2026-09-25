@@ -10,7 +10,8 @@ import PerformanceModal from './components/PerformanceModal';
 import PriorityReasoningModal from './components/PriorityReasoningModal';
 import SettingsModal from './components/SettingsModal';
 import ClassSelector from './components/ClassSelector';
-import { Award, Sparkles, RefreshCw, Database, CheckCircle2, AlertTriangle } from 'lucide-react';
+import TeacherCopilotModal from './components/TeacherCopilotModal';
+import { Award, Sparkles, RefreshCw, Database, CheckCircle2, AlertTriangle, Bot } from 'lucide-react';
 
 export default function App() {
   const [activeTier, setActiveTier] = useState('free');
@@ -25,6 +26,7 @@ export default function App() {
 
   const [isPerfModalOpen, setIsPerfModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [reasoningTopicId, setReasoningTopicId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [replanning, setReplanning] = useState(false);
@@ -271,6 +273,19 @@ export default function App() {
               {seeding ? 'Seeding...' : 'Seed Demo Data'}
             </button>
 
+            {/* Teacher Copilot Launch Button */}
+            <button
+              onClick={() => setIsCopilotOpen(true)}
+              id="teacher-copilot-btn"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white shadow-xl shadow-indigo-500/25 transition-all transform hover:scale-[1.02] border border-cyan-400/30"
+            >
+              <Sparkles className="w-4 h-4 text-cyan-200" />
+              <span>Teacher Copilot (AI)</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 font-semibold uppercase">
+                {activeTier === 'free' ? 'Heuristic' : activeTier === 'local' ? 'Local LLM' : 'Cloud'}
+              </span>
+            </button>
+
             <button
               onClick={() => setIsPerfModalOpen(true)}
               id="enter-scores-btn"
@@ -365,6 +380,32 @@ export default function App() {
         onClose={() => setIsSettingsModalOpen(false)}
         onSettingsSaved={() => loadData()}
       />
+
+      {/* Teacher Copilot Multimodal Agent Modal */}
+      <TeacherCopilotModal
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        activeClassId={activeClassId}
+        activeTier={activeTier}
+        onScheduleUpdated={() => handleClassChange(activeClassId)}
+        onOpenSettings={() => {
+          setIsCopilotOpen(false);
+          setIsSettingsModalOpen(true);
+        }}
+      />
+
+      {/* Floating Copilot Quick-Open Button */}
+      {!isCopilotOpen && (
+        <button
+          onClick={() => setIsCopilotOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 text-white font-extrabold text-xs shadow-2xl shadow-purple-950/80 hover:scale-105 border border-cyan-400/40 transition-all duration-300 group"
+          title="Open Teacher Copilot (Voice, Vision & Schedule Planning)"
+        >
+          <Bot className="w-4 h-4 text-cyan-200 group-hover:rotate-12 transition-transform" />
+          <span>Ask Copilot</span>
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+        </button>
+      )}
 
     </div>
   );
