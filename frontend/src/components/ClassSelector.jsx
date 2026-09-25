@@ -51,8 +51,8 @@ export default function ClassSelector({ activeClassId, onClassChange, topicCount
 
   return (
     <div className="mb-6 relative z-30">
-      {/* Active Class Hero Banner (no overflow-hidden so dropdown pops out above other elements) */}
-      <div className={`relative rounded-2xl border ${activeBorder} shadow-lg bg-slate-900/90 backdrop-blur-sm`}>
+      {/* Active Class Hero Banner */}
+      <div className={`class-hero-card relative rounded-2xl border ${activeBorder} shadow-lg bg-slate-900/90 backdrop-blur-sm`}>
         
         {/* Gradient accent bar with matching rounded corners */}
         <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient} rounded-t-2xl`} />
@@ -66,7 +66,7 @@ export default function ClassSelector({ activeClassId, onClassChange, topicCount
             </div>
             <div>
               <div className="flex items-center gap-2 mb-0.5">
-                <h2 className="text-base font-extrabold text-white">{activeClass?.label}</h2>
+                <h2 className="class-hero-title text-base font-extrabold text-white">{activeClass?.label}</h2>
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${pillColor}`}>
                   {topicCounts[activeClassId] ?? 0} topics
                 </span>
@@ -83,10 +83,10 @@ export default function ClassSelector({ activeClassId, onClassChange, topicCount
             <button
               onClick={() => setIsDropdownOpen(v => !v)}
               id="class-selector-btn"
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border bg-slate-900 hover:bg-slate-800 transition-all shadow-md ${activeBorder}`}
+              className={`class-selector-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border bg-slate-900 hover:bg-slate-800 transition-all shadow-md ${activeBorder}`}
             >
               <GraduationCap className="w-4 h-4 text-indigo-400" />
-              <span className="text-gray-100 font-extrabold">Switch Class</span>
+              <span className="font-extrabold">Switch Class</span>
               <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
@@ -99,7 +99,7 @@ export default function ClassSelector({ activeClassId, onClassChange, topicCount
                 />
                 
                 {/* Floating Dropdown Menu (High Z-Index, Unclipped) */}
-                <div className="absolute right-0 top-full mt-2 z-50 w-80 bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-2xl shadow-black/90 overflow-hidden divide-y divide-slate-800/80 animate-banner">
+                <div className="class-dropdown-menu absolute right-0 top-full mt-2 z-50 w-80 bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-2xl shadow-black/90 overflow-hidden divide-y divide-slate-800/80 animate-banner">
                   <div className="px-4 py-3 bg-slate-950/80 flex items-center justify-between">
                     <p className="text-[11px] font-extrabold text-indigo-300 uppercase tracking-wider">Select Class</p>
                     <span className="text-[10px] text-gray-500 font-semibold">3 classes available</span>

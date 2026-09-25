@@ -94,7 +94,7 @@ export default function TopicManager({ topics, onCreateTopic, onUpdateTopic, onD
 
       {/* Add Topic Drawer / Form */}
       {showForm && (
-        <div className="bg-slate-900/90 border border-indigo-500/30 rounded-xl p-4 mb-6 animate-banner space-y-4">
+        <div className="topic-form-drawer bg-slate-900/90 border border-indigo-500/30 rounded-xl p-4 mb-6 animate-banner space-y-4">
           
           {/* Mode Switcher */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -303,7 +303,7 @@ export default function TopicManager({ topics, onCreateTopic, onUpdateTopic, onD
                 const perfPct = t.performance_score !== null ? Math.round(t.performance_score * 100) : null;
 
                 return (
-                  <tr key={t.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={t.id} className="topic-table-row hover:bg-slate-800/40 transition-colors">
                     <td className="py-3 px-3 font-semibold text-white">
                       <div className="flex items-center gap-2">
                         <button
@@ -312,7 +312,7 @@ export default function TopicManager({ topics, onCreateTopic, onUpdateTopic, onD
                         >
                           {t.name}
                         </button>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-gray-400 border border-slate-700">
+                        <span className="topic-subject-badge text-[10px] px-2 py-0.5 rounded bg-slate-800 text-gray-400 border border-slate-700">
                           {t.subject}
                         </span>
                       </div>

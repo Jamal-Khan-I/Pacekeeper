@@ -55,10 +55,10 @@ export default function CalendarControl({ calendarDays, onSaveCalendar, onTrigge
             <div
               key={d.date_val}
               onClick={() => handleToggleHoliday(d.date_val)}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+              className={`calendar-day-card p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
                 d.is_holiday
-                  ? 'bg-rose-950/40 border-rose-500/50 hover:bg-rose-900/50'
-                  : 'bg-slate-900/60 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/60'
+                  ? 'calendar-day-holiday bg-rose-950/40 border-rose-500/50 hover:bg-rose-900/50'
+                  : 'calendar-day-active bg-slate-900/60 border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/60'
               }`}
             >
               <div className="flex items-center justify-between mb-2">

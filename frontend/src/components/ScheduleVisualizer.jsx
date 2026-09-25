@@ -171,7 +171,7 @@ export default function ScheduleVisualizer({ scheduleData, onSelectTopicForReaso
           </button>
 
           {/* Filter buttons */}
-          <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="schedule-filter-bar flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs">
             <button
               onClick={() => setFilterType('all')}
               className={`px-2.5 py-1 rounded-lg transition-all ${
@@ -240,10 +240,10 @@ export default function ScheduleVisualizer({ scheduleData, onSelectTopicForReaso
                       <div
                         key={session.session_id}
                         onClick={() => onSelectTopicForReasoning(session.topic_id)}
-                        className={`group relative rounded-xl p-4 transition-all duration-200 cursor-pointer border hover:scale-[1.01] shadow-lg ${
+                        className={`session-card group relative rounded-xl p-4 transition-all duration-200 cursor-pointer border hover:scale-[1.01] shadow-lg ${
                           session.isRevision
-                            ? 'bg-purple-950/30 border-purple-500/30 hover:border-purple-400/60 hover:shadow-purple-500/10'
-                            : 'bg-indigo-950/30 border-indigo-500/30 hover:border-indigo-400/60 hover:shadow-indigo-500/10'
+                            ? 'session-card-revision bg-purple-950/30 border-purple-500/30 hover:border-purple-400/60 hover:shadow-purple-500/10'
+                            : 'session-card-teaching bg-indigo-950/30 border-indigo-500/30 hover:border-indigo-400/60 hover:shadow-indigo-500/10'
                         }`}
                       >
                         {/* Type & Hours Header */}
@@ -274,14 +274,14 @@ export default function ScheduleVisualizer({ scheduleData, onSelectTopicForReaso
                         </div>
 
                         {/* Topic Name */}
-                        <h4 className="font-bold text-white text-sm group-hover:text-indigo-200 transition-colors mb-1">
+                        <h4 className="session-topic-name font-bold text-white text-sm group-hover:text-indigo-200 transition-colors mb-1">
                           {session.topic_name}
                         </h4>
                         
                         <div className="text-xs text-gray-400 mb-3">{session.subject}</div>
 
                         {/* Explainability Footer Badge */}
-                        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-gray-400">
+                        <div className="session-footer pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-gray-400">
                           <span className="flex items-center gap-1 text-purple-300 font-medium">
                             <Award className="w-3.5 h-3.5 text-purple-400" />
                             Priority: {pScore.toFixed(2)}
