@@ -12,6 +12,7 @@ import datetime
 import urllib.request
 import urllib.error
 import json
+import re
 from typing import Dict, Any, Optional, List
 from backend.app.agents.logger_util import safe_print
 
@@ -65,10 +66,23 @@ class OllamaClient:
         ts = _ts()
         model_to_use = model or self.default_model
 
+        # Sanitize images: strip data:image/...;base64, prefixes and whitespace
+        clean_images = []
+        if images:
+            for img in images:
+                if not img or not isinstance(img, str):
+                    continue
+                s = img.strip()
+                if "," in s and ("data:" in s[:30] or ";base64" in s[:30]):
+                    s = s.split(",", 1)[1]
+                s = re.sub(r'\s+', '', s)
+                if s:
+                    clean_images.append(s)
+
         safe_print(
             f"[{ts}] [OllamaClient] Sending request | "
             f"Model: {model_to_use} | "
-            f"Images: {len(images) if images else 0} | "
+            f"Images: {len(clean_images)} | "
             f"Fallback Fired: False (attempting real call)"
         )
 
@@ -79,8 +93,8 @@ class OllamaClient:
         }
         if system_prompt:
             payload["system"] = system_prompt
-        if images:
-            payload["images"] = images
+        if clean_images:
+            payload["images"] = clean_images
 
         try:
             data_bytes = json.dumps(payload).encode("utf-8")
@@ -89,7 +103,7 @@ class OllamaClient:
                 data=data_bytes,
                 headers={"Content-Type": "application/json"}
             )
-            res = urllib.request.urlopen(req, timeout=60)
+            res = urllib.request.urlopen(req, timeout=90)
             if res.status == 200:
                 resp_json = json.loads(res.read().decode("utf-8", errors="replace"))
                 resp_text = resp_json.get("response", "")

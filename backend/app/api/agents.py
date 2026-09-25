@@ -494,6 +494,7 @@ def speak_explanation(payload: SpeakRequest):
 class CopilotChatRequest(BaseModel):
     message: str
     image_base64: Optional[str] = None
+    filename: Optional[str] = None
     class_id: Optional[str] = "class_a"
     history: Optional[List[Dict[str, str]]] = None
 
@@ -511,6 +512,7 @@ def copilot_chat_endpoint(payload: CopilotChatRequest, db: Session = Depends(get
         image_base64=payload.image_base64,
         class_id=payload.class_id or "class_a",
         db=db,
-        history=payload.history
+        history=payload.history,
+        filename=payload.filename
     )
 

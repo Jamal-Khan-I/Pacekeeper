@@ -98,5 +98,37 @@ def test_copilot_diagram_tool():
     assert data["diagram_code"] is not None
     assert "gantt" in data["diagram_code"]
 
+def test_copilot_image_diagnosis_tool():
+    """Verifies image diagnosis in Copilot chat without base64 or source argument errors."""
+    from unittest.mock import patch
+    from backend.app.agents.performance_analyst import performance_analyst_agent
+    from backend.app.agents.model_client import model_client
+
+    _system_settings_state["active_tier"] = "local"
+    mock_diag = '{"overall_score": 0.45, "detected_topic": "Calculus Derivatives & Chain Rule", "weak_question_types": ["Chain Rule"], "question_breakdown": {}, "diagnostic_summary": "Diagnosis completed."}'
+
+    def mock_generate(*args, **kwargs):
+        prompt = kwargs.get("prompt") or (args[0] if args else "")
+        if "student answer sheet" in prompt.lower() or "transcript" in prompt.lower() or "ocr" in prompt.lower():
+            return mock_diag
+        return "I have diagnosed Alex Mercer's answer sheet and identified errors in the Chain Rule."
+
+    with patch.object(model_client, 'generate', side_effect=mock_generate):
+        response = client.post(
+            "/api/agents/copilot/chat",
+            json={
+                "message": "Please analyze this student answer sheet.",
+                "image_base64": "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9h",
+                "filename": "class_a_math_calculus_chain_rule_error.jpg",
+                "class_id": "class_a"
+            }
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "diagnose_answer_sheet" in data["actions_taken"]
+    assert data["diagnosis"] is not None
+    assert "Calculus" in data["diagnosis"]["detected_topic"]
+
     # Reset tier back to free
     _system_settings_state["active_tier"] = "free"

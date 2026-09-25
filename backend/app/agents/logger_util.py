@@ -23,7 +23,9 @@ def safe_print(*args, **kwargs) -> None:
     """
     Prints safely without raising UnicodeEncodeError (such as 'charmap' codec crashes on Windows).
     Falls back to backslashreplace/ascii escaping if console encoding rejects any character.
+    Flushes immediately so logs appear in real-time in server streams.
     """
+    kwargs.setdefault("flush", True)
     try:
         print(*args, **kwargs)
     except (UnicodeEncodeError, OSError):

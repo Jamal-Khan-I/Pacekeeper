@@ -67,6 +67,7 @@ class PerformanceAnalystAgent:
         model: Optional[str] = None,
         class_id: Optional[str] = None,
         filename: Optional[str] = None,
+        source: Optional[str] = "live",
     ) -> AnswerSheetDiagnosis:
         """
         Processes a photographed answer sheet image and returns structured diagnosis.
@@ -151,11 +152,12 @@ class PerformanceAnalystAgent:
         if not image_input:
             return None
 
-        # Already base64 data URI
-        if image_input.startswith("data:image") or (len(image_input) > 500 and not os.path.exists(image_input)):
-            if "," in image_input:
-                return image_input.split(",")[1]
-            return image_input
+        # Already base64 data URI or raw base64 string
+        if image_input.startswith("data:image") or (len(image_input) > 200 and not os.path.exists(image_input)):
+            clean_str = image_input
+            if "," in clean_str:
+                clean_str = clean_str.split(",", 1)[1]
+            return re.sub(r'\s+', '', clean_str)
 
         # File path
         if os.path.exists(image_input):

@@ -128,7 +128,7 @@ export default function TeacherCopilotModal({
       const reader = new FileReader();
       reader.onload = () => {
         setAttachedImage(reader.result);
-        setAttachedImageName(label || demoFilename);
+        setAttachedImageName(demoFilename);
       };
       reader.readAsDataURL(blob);
     } catch (err) {
@@ -140,18 +140,20 @@ export default function TeacherCopilotModal({
     const message = (textToSend !== null ? textToSend : inputVal).trim();
     if (!message && !attachedImage) return;
 
+    const curImg = attachedImage;
+    const curImgName = attachedImageName;
+
     const userMsgId = `user-${Date.now()}`;
     const newMsg = {
       id: userMsgId,
       role: 'user',
       text: message || 'Please analyze this student answer sheet.',
-      image: attachedImage,
-      imageName: attachedImageName
+      image: curImg,
+      imageName: curImgName
     };
 
     setMessages(prev => [...prev, newMsg]);
     setInputVal('');
-    const curImg = attachedImage;
     setAttachedImage(null);
     setAttachedImageName('');
     setLoading(true);
@@ -160,6 +162,7 @@ export default function TeacherCopilotModal({
       const res = await api.copilotChat({
         message: newMsg.text,
         image_base64: curImg,
+        filename: curImgName,
         class_id: activeClassId,
         history: messages.slice(-4).map(m => ({ role: m.role, content: m.text }))
       });

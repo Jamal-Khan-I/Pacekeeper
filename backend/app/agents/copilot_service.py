@@ -11,6 +11,8 @@ Provides an interactive, multimodal AI assistant for teachers:
 
 import json
 import re
+import uuid
+from datetime import date
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 
@@ -67,7 +69,8 @@ class TeacherCopilotService:
         image_base64: Optional[str],
         class_id: str,
         db: Session,
-        history: Optional[List[Dict[str, str]]] = None
+        history: Optional[List[Dict[str, str]]] = None,
+        filename: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Processes a teacher's conversational prompt with multimodal image and tool execution.
@@ -125,6 +128,36 @@ class TeacherCopilotService:
         # -------------------------------------------------------------
         if image_base64:
             actions_taken.append("diagnose_answer_sheet")
+            # If filename not provided, check if message mentions demo sample papers
+            effective_filename = filename
+            if not effective_filename:
+                if "chain rule" in msg_lower or "alex mercer" in msg_lower:
+                    effective_filename = "class_a_math_calculus_chain_rule_error.jpg"
+                elif "sn2" in msg_lower or "organic" in msg_lower:
+                    effective_filename = "class_c_chem_organic_reaction_mechanism_error.jpg"
+                elif "photoelectric" in msg_lower or "quantum" in msg_lower:
+                    effective_filename = "class_b_physics_quantum_photoelectric_error.jpg"
+
+            # Auto-align target_class if the sheet clearly belongs to a specific class
+            if effective_filename:
+                detected_class = None
+                if effective_filename.startswith("class_a_"):
+                    detected_class = "class_a"
+                elif effective_filename.startswith("class_b_"):
+                    detected_class = "class_b"
+                elif effective_filename.startswith("class_c_"):
+                    detected_class = "class_c"
+
+                if detected_class and detected_class != target_class:
+                    target_class = detected_class
+                    class_label = {
+                        "class_a": "Class 11-A (Mathematics)",
+                        "class_b": "Class 12-B (Physics)",
+                        "class_c": "Class 10-C (Chemistry)"
+                    }.get(target_class, f"Class {target_class.upper()}")
+                    topics_db = db.query(TopicDB).filter(TopicDB.class_id == target_class).all()
+                    topic_names = [t.name for t in topics_db]
+
             try:
                 diag = performance_analyst_agent.analyze_answer_sheet(
                     image_input=image_base64,
@@ -132,6 +165,7 @@ class TeacherCopilotService:
                     api_key=api_key,
                     model=model,
                     class_id=target_class,
+                    filename=effective_filename,
                     source="copilot"
                 )
                 diagnosis_result = diag.model_dump(mode="json") if hasattr(diag, "model_dump") else diag.dict()
@@ -144,11 +178,16 @@ class TeacherCopilotService:
                         break
 
                 rec = PerformanceRecordDB(
-                    student_name=diagnosis_result.get("student_name") or "Student Exam",
+                    id=f"perf_copilot_{uuid.uuid4().hex[:8]}",
                     topic_id=matched_topic_id,
+                    class_id=target_class,
                     score=float(diagnosis_result.get("overall_score") or 0.40),
-                    error_type=diagnosis_result.get("error_type") or "conceptual",
-                    class_id=target_class
+                    test_date=date.today().isoformat(),
+                    max_score=100.0,
+                    raw_score=float(diagnosis_result.get("overall_score") or 0.40) * 100.0,
+                    question_breakdown_json=json.dumps(diagnosis_result.get("question_breakdown") or {}),
+                    source="copilot",
+                    image_path=effective_filename
                 )
                 db.add(rec)
                 db.commit()
@@ -252,11 +291,22 @@ class TeacherCopilotService:
                 "Provide a concise, helpful response addressing the teacher's request and explaining any actions taken."
             )
 
+            # If the image was already processed by the diagnostic vision tool, do not pass heavy image bytes
+            # to the text chat generation step. If diagnosis wasn't run, pass the sanitized image.
+            synthesis_images = None
+            if image_base64 and not diagnosis_result:
+                clean_img = image_base64.strip()
+                if "," in clean_img and ("data:" in clean_img[:30] or ";base64" in clean_img[:30]):
+                    clean_img = clean_img.split(",", 1)[1]
+                clean_img = re.sub(r'\s+', '', clean_img)
+                if clean_img:
+                    synthesis_images = [clean_img]
+
             try:
                 reply_text = model_client.generate(
                     prompt=user_prompt,
                     system_prompt=system_prompt,
-                    images=[image_base64] if image_base64 else None,
+                    images=synthesis_images,
                     provider=provider,
                     api_key=api_key,
                     model=model
@@ -265,19 +315,39 @@ class TeacherCopilotService:
                     try:
                         err_json = json.loads(reply_text.strip())
                         err_reason = err_json.get("_pipeline_error") or err_json.get("diagnostic_summary")
+                        diag_block = ""
+                        if diagnosis_result:
+                            det_topic = diagnosis_result.get("detected_topic") or "Subject Paper"
+                            score_pct = round(float(diagnosis_result.get("overall_score") or 0.0) * 100)
+                            summary_diag = diagnosis_result.get("diagnostic_summary") or "Answer sheet analyzed."
+                            diag_block = (
+                                f"\n• **Exam Analysis**: Diagnosed **{det_topic}** (Score: **{score_pct}%**).\n"
+                                f"  *Diagnostic Finding*: {summary_diag}\n"
+                                f"• **Curriculum Adjusted**: Topics re-weighted for memory retention."
+                            )
                         reply_text = (
                             f"**Teacher Copilot [{provider.capitalize()} Mode]**\n\n"
                             f"I processed your classroom request for **{class_label}**.\n"
-                            f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.\n\n"
-                            f"*(Note from local AI model: {err_reason})*"
+                            f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.{diag_block}\n\n"
+                            f"*(Note from conversational model: {err_reason})*"
                         )
                     except Exception:
                         pass
             except Exception as e:
+                diag_block = ""
+                if diagnosis_result:
+                    det_topic = diagnosis_result.get("detected_topic") or "Subject Paper"
+                    score_pct = round(float(diagnosis_result.get("overall_score") or 0.0) * 100)
+                    summary_diag = diagnosis_result.get("diagnostic_summary") or "Answer sheet analyzed."
+                    diag_block = (
+                        f"\n• **Exam Analysis**: Diagnosed **{det_topic}** (Score: **{score_pct}%**).\n"
+                        f"  *Diagnostic Finding*: {summary_diag}\n"
+                        f"• **Curriculum Adjusted**: Topics re-weighted for memory retention."
+                    )
                 reply_text = (
                     f"**Teacher Copilot [{provider.capitalize()} Mode]**\n\n"
                     f"I processed your request for **{class_label}**.\n"
-                    f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.\n"
+                    f"• Actions completed: {', '.join(actions_taken) if actions_taken else 'Schedule verified'}.{diag_block}\n"
                     f"• Status: {len(schedule_dict.get('revision_sessions', []))} spaced revision blocks active.\n\n"
                     f"*(AI Note: {str(e)})*"
                 )
