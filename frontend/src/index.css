@@ -36,12 +36,30 @@
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f3f4f6;
+  color-scheme: dark;
 }
 
 .glass-input:focus {
   border-color: #6366f1;
   outline: none;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+/* Ensure HTML5 Date pickers look great and are clearly visible in dark mode */
+input[type="date"].glass-input,
+input[type="date"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.9) brightness(1.2);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Animations */

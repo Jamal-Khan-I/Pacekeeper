@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Award, X, Sparkles, Upload, CheckCircle2, AlertTriangle, Camera, 
   Terminal, Image, Folder, Database, ChevronDown, ChevronUp, 
-  FileSpreadsheet, Plus, FileText, Check, Layers, AlertCircle
+  FileSpreadsheet, Plus, FileText, Check, Layers, AlertCircle,
+  Users, Calendar, BarChart2, TrendingUp, TrendingDown
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -19,8 +20,18 @@ export default function PerformanceModal({
   // Determine whether AI capabilities are active
   const isAITier = activeTier === 'local' || activeTier === 'cloud';
 
-  // Active sub-tab
-  const [activeTab, setActiveTab] = useState(isAITier ? 'scan' : 'manual');
+  // Active sub-tab: default to 'roster' for free tier (best for classes/large student numbers)
+  const [activeTab, setActiveTab] = useState(isAITier ? 'scan' : 'roster');
+
+  // Shared / Class Roster State (Ideal for large student cohorts 30-60+)
+  const [rosterTopicId, setRosterTopicId] = useState('');
+  const [rosterMaxMarks, setRosterMaxMarks] = useState(25);
+  const [rosterText, setRosterText] = useState('');
+  const [rosterSubmitting, setRosterSubmitting] = useState(false);
+  const [showRosterStudentList, setShowRosterStudentList] = useState(false);
+
+  // Common Test Date state with quick presets
+  const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Single Manual Entry State
   const [selectedTopicId, setSelectedTopicId] = useState('');
@@ -28,10 +39,9 @@ export default function PerformanceModal({
   const [rawMarksObtained, setRawMarksObtained] = useState(18);
   const [rawMaxMarks, setRawMaxMarks] = useState(25);
   const [scorePercentage, setScorePercentage] = useState(72);
-  const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
-  const [submitting, setSubmitting] = useState(false);
+  const [singleSubmitting, setSingleSubmitting] = useState(false);
 
-  // Optional Advanced Details
+  // Optional Advanced Details (Single Mode)
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [mcqMarks, setMcqMarks] = useState('');
@@ -46,7 +56,7 @@ export default function PerformanceModal({
   const [newTopicDifficulty, setNewTopicDifficulty] = useState(3.0);
   const [creatingTopic, setCreatingTopic] = useState(false);
 
-  // Bulk / Drop CSV State
+  // Bulk / Drop CSV Across Multiple Topics State
   const [bulkText, setBulkText] = useState('');
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -86,9 +96,13 @@ export default function PerformanceModal({
   useEffect(() => {
     if (isOpen) {
       fetchRecords();
-      setActiveTab(isAITier ? 'scan' : 'manual');
+      setActiveTab(isAITier ? 'scan' : 'roster');
+      if (topics.length > 0 && !selectedTopicId) {
+        setSelectedTopicId(topics[0].id);
+        setRosterTopicId(topics[0].id);
+      }
     }
-  }, [isOpen, activeClassId, isAITier]);
+  }, [isOpen, activeClassId, isAITier, topics]);
 
   // Keep scorePercentage synced when in raw marks mode
   useEffect(() => {
@@ -103,10 +117,165 @@ export default function PerformanceModal({
   if (!isOpen) return null;
 
   const topicIdToUse = selectedTopicId || (topics[0]?.id ?? '');
+  const activeRosterTopic = topics.find(t => t.id === (rosterTopicId || topics[0]?.id)) || topics[0];
 
   const addLog = (type, msg) => {
     const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
     setPipelineLogs(prev => [{ ts, type, msg }, ...prev].slice(0, 20));
+  };
+
+  // --- DATE PICKER PRESET HELPER ---
+  const setDatePreset = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    setTestDate(d.toISOString().split('T')[0]);
+  };
+
+  // --- CLASS ROSTER PARSING (FOR LARGE NUMBER OF STUDENTS) ---
+  const parseClassRoster = (text, maxScoreVal) => {
+    if (!text || !text.trim()) return [];
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const rows = [];
+    const max = parseFloat(maxScoreVal) || 25;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Skip headers
+      if (i === 0 && (line.toLowerCase().includes('name') || line.toLowerCase().includes('roll') || line.toLowerCase().includes('mark') || line.toLowerCase().includes('score'))) {
+        continue;
+      }
+
+      let delimiter = ',';
+      if (line.includes('\t')) delimiter = '\t';
+      else if (line.includes(';')) delimiter = ';';
+      else if (line.includes(' - ')) delimiter = ' - ';
+
+      let name = `Student #${i + 1}`;
+      let marks = 0;
+
+      if (line.includes(delimiter)) {
+        const parts = line.split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
+        if (!isNaN(parseFloat(parts[1]))) {
+          name = parts[0] || `Student #${i + 1}`;
+          marks = parseFloat(parts[1]) || 0;
+        } else if (!isNaN(parseFloat(parts[0]))) {
+          marks = parseFloat(parts[0]) || 0;
+          name = parts[1] || `Student #${i + 1}`;
+        }
+      } else {
+        const num = parseFloat(line);
+        if (!isNaN(num)) {
+          marks = num;
+          name = `Student #${i + 1}`;
+        } else {
+          continue;
+        }
+      }
+
+      const pct = Math.round(Math.min(100, Math.max(0, (marks / max) * 100)));
+      rows.push({
+        id: `roster-${i}`,
+        name,
+        marks,
+        maxMarks: max,
+        percentage: pct,
+        status: pct >= 80 ? 'mastered' : pct < 50 ? 'needs_revision' : 'in_progress'
+      });
+    }
+    return rows;
+  };
+
+  const parsedRosterStudents = parseClassRoster(rosterText, rosterMaxMarks);
+
+  // Class Roster Metrics for large cohorts
+  const totalStudents = parsedRosterStudents.length;
+  const classAverageMarks = totalStudents > 0
+    ? (parsedRosterStudents.reduce((acc, s) => acc + s.marks, 0) / totalStudents).toFixed(1)
+    : 0;
+  const classAveragePct = totalStudents > 0
+    ? Math.round(parsedRosterStudents.reduce((acc, s) => acc + s.percentage, 0) / totalStudents)
+    : 0;
+  const masteredCount = parsedRosterStudents.filter(s => s.status === 'mastered').length;
+  const needsRevisionCount = parsedRosterStudents.filter(s => s.status === 'needs_revision').length;
+  const inProgressCount = totalStudents - masteredCount - needsRevisionCount;
+  const passRate = totalStudents > 0
+    ? Math.round(((totalStudents - needsRevisionCount) / totalStudents) * 100)
+    : 0;
+
+  const handleLoadSampleRoster = () => {
+    // Generates a realistic 36-student class assessment roster
+    const sample = `Alex Mercer, 19
+Brenda Smith, 24
+Charlie Davis, 11
+David Evans, 22
+Emily Clark, 9
+Fiona White, 18
+George Wilson, 25
+Hannah Martin, 14
+Ian Thomas, 20
+Jessica Hall, 8
+Kevin Adams, 16
+Laura Nelson, 23
+Michael Carter, 17
+Nina Patel, 21
+Oscar Garcia, 10
+Paula Reed, 19
+Quinn Ross, 24
+Rachel Cox, 15
+Sam Bailey, 7
+Tina Diaz, 22
+Umar Khan, 18
+Victoria Stone, 25
+William Scott, 12
+Xavier Miller, 19
+Yvonne Green, 23
+Zachary King, 16
+Aiden Young, 14
+Chloe Perez, 21
+Dylan Wright, 8
+Ella Foster, 20
+Felix Ramirez, 18
+Grace Torres, 24
+Henry Jenkins, 13
+Isla Perry, 22
+Jack Russell, 17
+Kylie Simmons, 19`;
+    setRosterText(sample);
+    setRosterMaxMarks(25);
+  };
+
+  // Submit Class Roster
+  const handleSubmitClassRoster = async () => {
+    if (!rosterTopicId || totalStudents === 0) return;
+    setRosterSubmitting(true);
+
+    try {
+      const normalizedScore = classAveragePct / 100.0;
+      await onSubmitPerformance({
+        topic_id: rosterTopicId,
+        score: normalizedScore,
+        test_date: testDate,
+        max_score: parseFloat(rosterMaxMarks) || 25,
+        raw_score: parseFloat(classAverageMarks),
+        source: 'live',
+        question_breakdown: {
+          cohort_type: 'class_roster',
+          total_students: totalStudents,
+          class_average_pct: classAveragePct,
+          pass_rate_pct: passRate,
+          needs_revision_students: needsRevisionCount,
+          mastered_students: masteredCount,
+          sample_student_records: parsedRosterStudents.slice(0, 10).map(s => ({ name: s.name, score: s.marks }))
+        }
+      });
+
+      await fetchRecords();
+      onClose();
+    } catch (err) {
+      alert(`Error submitting class roster: ${err.message}`);
+    } finally {
+      setRosterSubmitting(false);
+    }
   };
 
   // --- CAMERA & AI VISION HELPERS ---
@@ -322,23 +491,15 @@ export default function PerformanceModal({
     e.preventDefault();
     if (!topicIdToUse) return;
 
-    setSubmitting(true);
+    setSingleSubmitting(true);
     try {
       const normalizedScore = scorePercentage / 100.0;
       const questionBreakdown = {};
       
-      if (mcqMarks) {
-        questionBreakdown.mcq = parseFloat(mcqMarks);
-      }
-      if (subjectiveMarks) {
-        questionBreakdown.subjective = parseFloat(subjectiveMarks);
-      }
-      if (studentName) {
-        questionBreakdown.student = studentName;
-      }
-      if (diagnosticNote) {
-        questionBreakdown.note = diagnosticNote;
-      }
+      if (mcqMarks) questionBreakdown.mcq = parseFloat(mcqMarks);
+      if (subjectiveMarks) questionBreakdown.subjective = parseFloat(subjectiveMarks);
+      if (studentName) questionBreakdown.student = studentName;
+      if (diagnosticNote) questionBreakdown.note = diagnosticNote;
 
       await onSubmitPerformance({
         topic_id: topicIdToUse,
@@ -356,11 +517,11 @@ export default function PerformanceModal({
     } catch (err) {
       alert(`Error submitting score: ${err.message}`);
     } finally {
-      setSubmitting(false);
+      setSingleSubmitting(false);
     }
   };
 
-  // --- BULK / CSV PARSING LOGIC ---
+  // --- MULTI-TOPIC BULK CSV PARSING LOGIC ---
   const parseBulkInput = (text) => {
     if (!text || !text.trim()) return [];
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -368,12 +529,10 @@ export default function PerformanceModal({
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      // Skip commented lines or headers
       if (line.startsWith('#') || (i === 0 && line.toLowerCase().includes('topic') && (line.toLowerCase().includes('mark') || line.toLowerCase().includes('score')))) {
         continue;
       }
 
-      // Detect separator: tab, comma, or semicolon
       let delimiter = ',';
       if (line.includes('\t')) delimiter = '\t';
       else if (line.includes(';')) delimiter = ';';
@@ -385,7 +544,6 @@ export default function PerformanceModal({
       let rawScore = 0;
       let maxScore = 100;
 
-      // Handle "18/25", "85%", or "18"
       const scoreStr = parts[1];
       if (scoreStr.includes('/')) {
         const [s, m] = scoreStr.split('/').map(Number);
@@ -402,8 +560,7 @@ export default function PerformanceModal({
         }
       }
 
-      // Check for date in 3rd or 4th position
-      let dateStr = new Date().toISOString().split('T')[0];
+      let dateStr = testDate;
       if (parts.length >= 4 && /^\d{4}-\d{2}-\d{2}$/.test(parts[3])) {
         dateStr = parts[3];
       } else if (parts.length === 3 && /^\d{4}-\d{2}-\d{2}$/.test(parts[2])) {
@@ -412,7 +569,6 @@ export default function PerformanceModal({
 
       const pct = Math.round(Math.min(100, Math.max(0, (rawScore / maxScore) * 100)));
 
-      // Fuzzy match topic name with existing syllabus topics
       const matched = topics.find(t => 
         t.name.toLowerCase().trim() === topicName.toLowerCase().trim() ||
         t.name.toLowerCase().includes(topicName.toLowerCase()) ||
@@ -449,14 +605,6 @@ export default function PerformanceModal({
     reader.readAsText(file);
   };
 
-  const handleLoadSampleCSV = () => {
-    const sample = `Topic Name, Marks Obtained, Max Marks, Date
-Trigonometry & Trigonometric Identities, 34, 40, ${new Date().toISOString().split('T')[0]}
-Calculus Derivatives & Chain Rule, 18, 25, ${new Date().toISOString().split('T')[0]}
-Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
-    setBulkText(sample);
-  };
-
   const handleSubmitBulk = async () => {
     if (parsedBulkRows.length === 0) return;
     setBulkImporting(true);
@@ -467,7 +615,6 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
       for (const row of parsedBulkRows) {
         let topicId = row.matchedTopic?.id;
 
-        // If topic doesn't exist, create it on the fly
         if (!topicId) {
           const newTopic = await api.createTopic({
             name: row.topicName,
@@ -484,7 +631,7 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
         recordsToSubmit.push({
           topic_id: topicId,
           score: row.percentage / 100.0,
-          test_date: row.date,
+          test_date: row.date || testDate,
           max_score: row.maxScore,
           raw_score: row.rawScore,
           source: 'live',
@@ -562,30 +709,30 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold text-white">
-                {isAITier ? 'Enter Scores / Scan Answer Sheet' : 'Manual Test Scores & Marks Drop'}
+                Record Test Scores & Student Marks
               </h3>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
                 activeTier === 'free' 
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
                   : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
               }`}>
-                {activeTier === 'free' ? 'Free Tier (Zero Latency)' : activeTier.toUpperCase()}
+                {activeTier === 'free' ? 'Free Tier (Deterministic Engine)' : activeTier.toUpperCase()}
               </span>
             </div>
             <p className="text-xs text-gray-400">
               {activeTier === 'free'
-                ? 'Drop raw marks or upload a CSV gradebook to automatically recompute your spaced revision roadmap.'
-                : 'Upload exam sheet photos, live capture, or manually drop marks.'}
+                ? 'Drop class marks (30-60+ students) or single test results to automatically re-pace your teaching schedule.'
+                : 'Upload exam sheet photos, live capture, or drop cohort rosters.'}
             </p>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 p-1 bg-slate-900/90 rounded-xl border border-slate-800 mb-5">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800 mb-5">
           {isAITier && (
             <button
               onClick={() => { stopCamera(); setActiveTab('scan'); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'scan'
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-gray-200'
@@ -596,204 +743,390 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
             </button>
           )}
 
+          {/* Whole Class Roster (Best for large student numbers 30-60+) */}
+          <button
+            onClick={() => { stopCamera(); setActiveTab('roster'); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
+              activeTab === 'roster'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Class Roster (30-60+ Students)</span>
+            {totalStudents > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] font-bold">
+                {totalStudents}
+              </span>
+            )}
+          </button>
+
+          {/* Single Topic / Quick Check */}
           <button
             onClick={() => { stopCamera(); setActiveTab('manual'); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
               activeTab === 'manual'
                 ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-md'
                 : 'text-gray-400 hover:text-gray-200'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Single Topic Entry</span>
+            <span>Single Entry</span>
           </button>
 
+          {/* Multi-Topic Gradebook */}
           <button
             onClick={() => { stopCamera(); setActiveTab('bulk'); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${
               activeTab === 'bulk'
                 ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md'
                 : 'text-gray-400 hover:text-gray-200'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Drop Marks / CSV</span>
-            {parsedBulkRows.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px]">
-                {parsedBulkRows.length}
-              </span>
-            )}
+            <span>Multi-Topic CSV</span>
           </button>
         </div>
 
-        {/* ================= TAB 1: AI VISION SCAN (AI TIERS ONLY) ================= */}
-        {isAITier && activeTab === 'scan' && (
+        {/* ================= REUSABLE TEST DATE SELECTOR WITH SHORTCUT PRESETS ================= */}
+        <div className="mb-4 bg-slate-900/70 border border-slate-800 rounded-xl p-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+            <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Assessment / Exam Date</span>
+            </label>
+            {/* Quick 1-Click Date Presets */}
+            <div className="flex items-center gap-1 flex-wrap text-[11px]">
+              <button
+                type="button"
+                onClick={() => setDatePreset(0)}
+                className={`px-2 py-0.5 rounded-lg border transition ${
+                  testDate === new Date().toISOString().split('T')[0]
+                    ? 'bg-indigo-600 text-white border-indigo-500 font-bold'
+                    : 'bg-slate-800/80 text-gray-300 border-slate-700 hover:text-white'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setDatePreset(1)}
+                className="px-2 py-0.5 rounded-lg border bg-slate-800/80 text-gray-300 border-slate-700 hover:text-white transition"
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => setDatePreset(3)}
+                className="px-2 py-0.5 rounded-lg border bg-slate-800/80 text-gray-300 border-slate-700 hover:text-white transition"
+              >
+                -3 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => setDatePreset(7)}
+                className="px-2 py-0.5 rounded-lg border bg-slate-800/80 text-gray-300 border-slate-700 hover:text-white transition"
+              >
+                -1 Week
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="date"
+              value={testDate}
+              onChange={(e) => setTestDate(e.target.value)}
+              onClick={(e) => {
+                try {
+                  if (e.target.showPicker) e.target.showPicker();
+                } catch { /* ignore */ }
+              }}
+              className="glass-input px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer w-full sm:w-auto"
+              required
+            />
+            <span className="text-[11px] text-indigo-300 font-medium">
+              {new Date(testDate + 'T00:00:00').toLocaleDateString(undefined, { 
+                weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' 
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* ================= TAB: CLASS ROSTER (30-60+ STUDENTS) ================= */}
+        {activeTab === 'roster' && (
           <div className="space-y-4 animate-banner">
-            {isCameraActive ? (
-              <div className="bg-slate-950 rounded-xl p-3 border border-indigo-500/40 text-center">
-                <div className="relative rounded-lg overflow-hidden bg-black mb-3">
-                  <video ref={videoRef} autoPlay playsInline className="w-full h-48 object-cover rounded-lg" />
-                </div>
-                <div className="flex items-center justify-center gap-2">
+            
+            {/* Exam Header: Topic & Max Marks */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-gray-300">Exam Topic</label>
                   <button
                     type="button"
-                    onClick={capturePhotoAndScan}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition"
+                    onClick={() => setShowQuickAddTopic(!showQuickAddTopic)}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold"
                   >
-                    <Camera className="w-4 h-4" />
-                    Snap Photo & Scan (Live)
-                  </button>
-                  <button type="button" onClick={stopCamera} className="px-3 py-2 rounded-xl text-xs text-gray-400 hover:text-white">
-                    Cancel Camera
+                    {showQuickAddTopic ? 'Close' : '+ New Topic'}
                   </button>
                 </div>
+                <select
+                  value={rosterTopicId || topicIdToUse}
+                  onChange={(e) => setRosterTopicId(e.target.value)}
+                  className="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold"
+                >
+                  {topics.map((t) => (
+                    <option key={t.id} value={t.id} className="bg-slate-900 text-white">
+                      {t.name} ({t.subject})
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              /* Scan Box */
-              <div className="bg-slate-900/90 border border-dashed border-indigo-500/40 rounded-xl p-4 text-center">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                  <span className="text-xs font-bold text-indigo-300">Scan Student Answer Sheet — AI Vision Diagnosis</span>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Total / Max Marks</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.5"
+                  value={rosterMaxMarks}
+                  onChange={(e) => setRosterMaxMarks(e.target.value)}
+                  className="w-full glass-input px-3 py-2 rounded-xl text-xs font-bold text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Quick Add Topic Inline Form */}
+            {showQuickAddTopic && (
+              <div className="p-3 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-2 animate-banner">
+                <span className="text-[11px] font-bold text-indigo-300 block">Add New Topic to Syllabus</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Topic Name (e.g. Differential Equations)"
+                    value={newTopicName}
+                    onChange={(e) => setNewTopicName(e.target.value)}
+                    className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                  />
+                  <select
+                    value={newTopicSubject}
+                    onChange={(e) => setNewTopicSubject(e.target.value)}
+                    className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                  >
+                    <option value="Mathematics" className="bg-slate-900">Mathematics</option>
+                    <option value="Physics" className="bg-slate-900">Physics</option>
+                    <option value="Chemistry" className="bg-slate-900">Chemistry</option>
+                    <option value="Biology" className="bg-slate-900">Biology</option>
+                    <option value="Computer Science" className="bg-slate-900">Computer Science</option>
+                  </select>
                 </div>
-
-                <div className="flex items-center justify-center gap-2 flex-wrap">
-                  <input type="file" accept="image/*" onChange={handleFileScan} className="hidden" id="answer-sheet-upload" />
-                  <label
-                    htmlFor="answer-sheet-upload"
-                    className="flex items-center gap-1.5 cursor-pointer text-xs px-3.5 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 font-semibold transition-all"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                    {scanning ? 'Scanning...' : 'Upload File (Live)'}
-                  </label>
-
-                  <span className="text-xs text-gray-500 font-bold">OR</span>
-
+                <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={startCamera}
-                    className="flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 font-semibold transition-all"
+                    onClick={() => setShowQuickAddTopic(false)}
+                    className="px-2.5 py-1 text-xs text-gray-400 hover:text-white"
                   >
-                    <Camera className="w-3.5 h-3.5 text-purple-400" />
-                    Live Camera
+                    Cancel
                   </button>
-
-                  <span className="text-xs text-gray-500 font-bold">OR</span>
-
                   <button
                     type="button"
-                    onClick={loadDemoImages}
-                    className="flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/40 text-amber-200 border border-amber-500/30 font-semibold transition-all"
+                    disabled={creatingTopic || !newTopicName.trim()}
+                    onClick={handleQuickAddTopic}
+                    className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs"
                   >
-                    <Folder className="w-3.5 h-3.5 text-amber-400" />
-                    Demo Dataset
+                    {creatingTopic ? 'Creating...' : 'Create Topic'}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Demo Image Picker Panel */}
-            {showDemoPanel && (
-              <div className="bg-slate-900/80 border border-amber-500/30 rounded-xl p-3 animate-banner">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                    <Image className="w-3.5 h-3.5" />
-                    Sample Answer Sheets — {activeClassId?.replace('_', ' ').toUpperCase()} (source: demo)
+            {/* Roster Paste Box */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-bold text-gray-200 block">
+                    Paste Student Marks (Excel / Google Sheets / Roster):
+                  </label>
+                  <span className="text-[10px] text-gray-400">
+                    Supports <code>Name, Marks</code> or simply a column of marks.
                   </span>
-                  <button onClick={() => setShowDemoPanel(false)} className="text-gray-500 hover:text-white">
-                    <X className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleLoadSampleRoster}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 font-semibold transition"
+                  >
+                    Load 36-Student Sample Roster
+                  </button>
+                  {rosterText && (
+                    <button
+                      type="button"
+                      onClick={() => setRosterText('')}
+                      className="text-[11px] text-gray-500 hover:text-gray-300"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <textarea
+                rows={5}
+                value={rosterText}
+                onChange={(e) => setRosterText(e.target.value)}
+                placeholder={`Alex Mercer, 19\nBrenda Smith, 24\nCharlie Davis, 11\n... (Paste up to 100 students)`}
+                className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-mono"
+              />
+            </div>
+
+            {/* Cohort Analytics Snapshot (Appears when marks are pasted) */}
+            {totalStudents > 0 && (
+              <div className="bg-slate-900/95 border border-emerald-500/30 rounded-xl p-4 space-y-3 animate-banner">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                    <BarChart2 className="w-4 h-4" />
+                    Cohort Assessment Snapshot ({totalStudents} Students Tested)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRosterStudentList(!showRosterStudentList)}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold"
+                  >
+                    {showRosterStudentList ? 'Hide Student List' : 'View All Student Scores'}
                   </button>
                 </div>
-                {demoImages.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-2">
-                    No demo images found. Run "Seed Demo Data" from the main dashboard first.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-1.5">
-                    {demoImages.map((img) => (
-                      <button
-                        key={img.filename}
-                        onClick={() => scanDemoImage(img.filename)}
-                        disabled={!img.exists}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all text-xs ${
-                          img.exists
-                            ? 'bg-slate-800/80 hover:bg-slate-800 text-gray-200 hover:text-white'
-                            : 'bg-slate-900/50 text-gray-600 cursor-not-allowed'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${img.exists ? 'bg-emerald-400' : 'bg-gray-600'}`} />
-                        <span className="font-mono truncate">{img.filename}</span>
-                        <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">DEMO</span>
-                        {!img.exists && <span className="text-rose-400 shrink-0">(missing)</span>}
-                      </button>
+
+                {/* 4 Metrics Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-gray-400 block mb-0.5">Class Average</span>
+                    <span className="text-base font-extrabold text-white">
+                      {classAverageMarks} <span className="text-xs text-gray-400">/ {rosterMaxMarks}</span>
+                    </span>
+                    <span className={`text-[10px] block font-bold ${
+                      classAveragePct >= 80 ? 'text-emerald-400' : classAveragePct < 50 ? 'text-rose-400' : 'text-amber-400'
+                    }`}>
+                      ({classAveragePct}%)
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-gray-400 block mb-0.5">Pass Rate</span>
+                    <span className="text-base font-extrabold text-emerald-400">
+                      {passRate}%
+                    </span>
+                    <span className="text-[10px] text-gray-400 block">
+                      {totalStudents - needsRevisionCount}/{totalStudents} passed
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-gray-400 block mb-0.5">Mastered (&ge;80%)</span>
+                    <span className="text-base font-extrabold text-emerald-300">
+                      {masteredCount}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block">
+                      {Math.round((masteredCount / totalStudents) * 100)}% of cohort
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-gray-400 block mb-0.5">Needs Revision (&lt;50%)</span>
+                    <span className="text-base font-extrabold text-rose-400">
+                      {needsRevisionCount}
+                    </span>
+                    <span className="text-[10px] text-rose-300/80 block">
+                      Requires revision
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cohort Distribution Bar */}
+                <div>
+                  <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
+                    <div 
+                      style={{ width: `${(masteredCount / totalStudents) * 100}%` }} 
+                      className="bg-emerald-500 transition-all duration-300"
+                      title={`Mastered: ${masteredCount}`}
+                    />
+                    <div 
+                      style={{ width: `${(inProgressCount / totalStudents) * 100}%` }} 
+                      className="bg-amber-500 transition-all duration-300"
+                      title={`In Progress: ${inProgressCount}`}
+                    />
+                    <div 
+                      style={{ width: `${(needsRevisionCount / totalStudents) * 100}%` }} 
+                      className="bg-rose-500 transition-all duration-300"
+                      title={`Needs Revision: ${needsRevisionCount}`}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                    <span>🟢 Mastered ({masteredCount})</span>
+                    <span>🟡 In Progress ({inProgressCount})</span>
+                    <span>🔴 Needs Revision ({needsRevisionCount})</span>
+                  </div>
+                </div>
+
+                {/* Collapsible Student Table */}
+                {showRosterStudentList && (
+                  <div className="max-h-48 overflow-y-auto space-y-1 pr-1 border-t border-slate-800 pt-2">
+                    {parsedRosterStudents.map((s, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-1.5 rounded-lg bg-slate-950/60 text-xs">
+                        <span className="text-gray-200 font-medium">{s.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 font-mono">{s.marks} / {s.maxMarks}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                            s.status === 'mastered' ? 'bg-emerald-500/20 text-emerald-300' :
+                            s.status === 'needs_revision' ? 'bg-rose-500/20 text-rose-300' :
+                            'bg-amber-500/20 text-amber-300'
+                          }`}>
+                            {s.percentage}%
+                          </span>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Vision Diagnosis Result */}
-            {diagnosisResult && (
-              <div className={`p-3.5 rounded-xl border text-xs space-y-2 animate-banner ${
-                isPipelineError
-                  ? 'bg-rose-950/30 border-rose-500/40'
-                  : 'bg-purple-950/40 border-purple-500/40'
-              }`}>
-                <div className="font-bold flex items-center justify-between">
-                  <span className={isPipelineError ? 'text-rose-300' : 'text-purple-300'}>
-                    {isPipelineError ? '⚠ AI Pipeline Error' : '✓ Answer Sheet Diagnosis'}
-                  </span>
-                  {!isPipelineError && (
-                    <span className="text-emerald-400 font-extrabold">{Math.round(diagnosisResult.overall_score * 100)}% Score</span>
-                  )}
-                </div>
+            {/* Submit Action */}
+            <div className="flex justify-between items-center pt-3 border-t border-slate-800">
+              <span className="text-xs text-gray-400">
+                Pacing engine updates schedule to match overall class average ({classAveragePct}%).
+              </span>
 
-                {providerUsed && !isPipelineError && (
-                  <div className="text-[11px] text-gray-400">
-                    Provider: <span className="text-indigo-300 font-semibold">{providerUsed}</span> |
-                    Topic: <span className="text-purple-300 font-semibold">{diagnosisResult.detected_topic}</span> |
-                    Fallback Fired: <span className="text-emerald-400 font-bold">False ✓</span>
-                  </div>
-                )}
-
-                <p className={`italic ${isPipelineError ? 'text-rose-300' : 'text-gray-300'}`}>
-                  {diagnosisResult.diagnostic_summary}
-                </p>
-
-                {!isPipelineError && diagnosisResult.weak_question_types?.length > 0 && (
-                  <div className="pt-1 text-[11px] font-semibold text-rose-300">
-                    Weak Types: {diagnosisResult.weak_question_types.join(', ')}
-                  </div>
-                )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onClose()}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={rosterSubmitting || totalStudents === 0}
+                  onClick={handleSubmitClassRoster}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-xl shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {rosterSubmitting 
+                    ? 'Submitting & Replanning...' 
+                    : `Submit Class Assessment (${totalStudents} Students) & Auto-Replan`}
+                </button>
               </div>
-            )}
-
-            {/* Pipeline Logs */}
-            {pipelineLogs.length > 0 && (
-              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono max-h-32 overflow-y-auto">
-                <div className="flex items-center gap-2 mb-2">
-                  <Terminal className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">AI Pipeline Logs</span>
-                </div>
-                {pipelineLogs.map((log, i) => (
-                  <div key={i} className="flex items-start gap-2 text-[11px]">
-                    <span className="text-gray-600 shrink-0 w-20">{log.ts}</span>
-                    <span className={`${
-                      log.type === 'success' ? 'text-emerald-400' :
-                      log.type === 'error' ? 'text-rose-400' :
-                      'text-blue-400'
-                    } break-all leading-relaxed`}>{log.msg}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* ================= TAB 2: MANUAL SCORE ENTRY ================= */}
+        {/* ================= TAB: SINGLE TOPIC SCORE ENTRY ================= */}
         {activeTab === 'manual' && (
           <form onSubmit={handleSubmitSingle} className="space-y-4 animate-banner">
             
-            {/* Topic Selection + Quick Add Topic Button */}
+            {/* Topic Selection */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-gray-300">Select Syllabus Topic</label>
@@ -812,28 +1145,24 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
                 <div className="mb-3 p-3 rounded-xl bg-slate-900 border border-indigo-500/40 space-y-2 animate-banner">
                   <span className="text-[11px] font-bold text-indigo-300 block">Add New Topic to Syllabus</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Topic Name (e.g. Vectors & Matrices)"
-                        value={newTopicName}
-                        onChange={(e) => setNewTopicName(e.target.value)}
-                        className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
-                      />
-                    </div>
-                    <div>
-                      <select
-                        value={newTopicSubject}
-                        onChange={(e) => setNewTopicSubject(e.target.value)}
-                        className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
-                      >
-                        <option value="Mathematics" className="bg-slate-900">Mathematics</option>
-                        <option value="Physics" className="bg-slate-900">Physics</option>
-                        <option value="Chemistry" className="bg-slate-900">Chemistry</option>
-                        <option value="Biology" className="bg-slate-900">Biology</option>
-                        <option value="Computer Science" className="bg-slate-900">Computer Science</option>
-                      </select>
-                    </div>
+                    <input
+                      type="text"
+                      placeholder="Topic Name (e.g. Vectors & Matrices)"
+                      value={newTopicName}
+                      onChange={(e) => setNewTopicName(e.target.value)}
+                      className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                    />
+                    <select
+                      value={newTopicSubject}
+                      onChange={(e) => setNewTopicSubject(e.target.value)}
+                      className="w-full glass-input px-3 py-1.5 rounded-lg text-xs"
+                    >
+                      <option value="Mathematics" className="bg-slate-900">Mathematics</option>
+                      <option value="Physics" className="bg-slate-900">Physics</option>
+                      <option value="Chemistry" className="bg-slate-900">Chemistry</option>
+                      <option value="Biology" className="bg-slate-900">Biology</option>
+                      <option value="Computer Science" className="bg-slate-900">Computer Science</option>
+                    </select>
                   </div>
                   <div className="flex justify-end gap-2 pt-1">
                     <button
@@ -948,18 +1277,6 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
               </div>
             </div>
 
-            {/* Test Date */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Test Date</label>
-              <input
-                type="date"
-                value={testDate}
-                onChange={(e) => setTestDate(e.target.value)}
-                className="w-full glass-input px-3.5 py-2 rounded-xl text-xs"
-                required
-              />
-            </div>
-
             {/* Optional Advanced Details Toggle */}
             <div className="border border-slate-800/80 rounded-xl overflow-hidden bg-slate-900/50">
               <button
@@ -969,7 +1286,7 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
               >
                 <div className="flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Optional Exam Details (Student Name, Question Types, Notes)</span>
+                  <span>Optional Details (Student Name, Sections, Diagnostic Notes)</span>
                 </div>
                 {showOptionalDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
@@ -1048,22 +1365,20 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={singleSubmitting}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white shadow-xl shadow-pink-500/25 transition-all"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  {submitting ? 'Re-planning Schedule...' : 'Save Score & Auto-Replan'}
+                  {singleSubmitting ? 'Re-planning Schedule...' : 'Save Score & Auto-Replan'}
                 </button>
               </div>
             </div>
           </form>
         )}
 
-        {/* ================= TAB 3: DROP / PASTE MARKS & TOPICS (BULK CSV) ================= */}
+        {/* ================= TAB: DROP / PASTE MARKS ACROSS MULTIPLE TOPICS (CSV) ================= */}
         {activeTab === 'bulk' && (
           <div className="space-y-4 animate-banner">
-            
-            {/* Drag & Drop Zone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
               onDragLeave={() => setIsDraggingFile(false)}
@@ -1076,7 +1391,7 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
             >
               <FileSpreadsheet className="w-8 h-8 text-cyan-400 mx-auto mb-2 animate-bounce" />
               <p className="text-xs font-bold text-gray-200 mb-1">
-                Drag & Drop Gradebook CSV / Spreadsheet or Paste Below
+                Drag & Drop Multi-Topic CSV or Paste Below
               </p>
               <p className="text-[11px] text-gray-400 mb-3">
                 Format: <code className="text-cyan-300">Topic Name, Marks Obtained, Max Marks, Date (optional)</code>
@@ -1096,20 +1411,12 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
                 >
                   Choose File (.csv, .txt)
                 </label>
-                <button
-                  type="button"
-                  onClick={handleLoadSampleCSV}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 transition"
-                >
-                  Load Sample Template
-                </button>
               </div>
             </div>
 
-            {/* Paste Textarea */}
             <div>
               <label className="block text-xs font-semibold text-gray-300 mb-1">
-                Paste CSV or Excel Rows:
+                Paste Multi-Topic CSV / Excel Rows:
               </label>
               <textarea
                 rows={4}
@@ -1120,12 +1427,11 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
               />
             </div>
 
-            {/* Parsed Rows Preview */}
             {parsedBulkRows.length > 0 && (
               <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-gray-200">
-                    Parsed {parsedBulkRows.length} Test Record{parsedBulkRows.length > 1 ? 's' : ''}:
+                    Parsed {parsedBulkRows.length} Topic Score{parsedBulkRows.length > 1 ? 's' : ''}:
                   </span>
                   <span className="text-[11px] text-gray-400">
                     {parsedBulkRows.filter(r => r.isNew).length > 0 && (
@@ -1173,7 +1479,6 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
               </div>
             )}
 
-            {/* Bulk Actions */}
             <div className="flex justify-between items-center pt-3 border-t border-slate-800">
               <button
                 type="button"
@@ -1207,6 +1512,165 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
           </div>
         )}
 
+        {/* ================= TAB: AI VISION SCAN (AI TIERS ONLY) ================= */}
+        {isAITier && activeTab === 'scan' && (
+          <div className="space-y-4 animate-banner">
+            {isCameraActive ? (
+              <div className="bg-slate-950 rounded-xl p-3 border border-indigo-500/40 text-center">
+                <div className="relative rounded-lg overflow-hidden bg-black mb-3">
+                  <video ref={videoRef} autoPlay playsInline className="w-full h-48 object-cover rounded-lg" />
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={capturePhotoAndScan}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Snap Photo & Scan (Live)
+                  </button>
+                  <button type="button" onClick={stopCamera} className="px-3 py-2 rounded-xl text-xs text-gray-400 hover:text-white">
+                    Cancel Camera
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-900/90 border border-dashed border-indigo-500/40 rounded-xl p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-bold text-indigo-300">Scan Student Answer Sheet — AI Vision Diagnosis</span>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <input type="file" accept="image/*" onChange={handleFileScan} className="hidden" id="answer-sheet-upload" />
+                  <label
+                    htmlFor="answer-sheet-upload"
+                    className="flex items-center gap-1.5 cursor-pointer text-xs px-3.5 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 font-semibold transition-all"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                    {scanning ? 'Scanning...' : 'Upload File (Live)'}
+                  </label>
+
+                  <span className="text-xs text-gray-500 font-bold">OR</span>
+
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    className="flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 font-semibold transition-all"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-purple-400" />
+                    Live Camera
+                  </button>
+
+                  <span className="text-xs text-gray-500 font-bold">OR</span>
+
+                  <button
+                    type="button"
+                    onClick={loadDemoImages}
+                    className="flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/40 text-amber-200 border border-amber-500/30 font-semibold transition-all"
+                  >
+                    <Folder className="w-3.5 h-3.5 text-amber-400" />
+                    Demo Dataset
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showDemoPanel && (
+              <div className="bg-slate-900/80 border border-amber-500/30 rounded-xl p-3 animate-banner">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Image className="w-3.5 h-3.5" />
+                    Sample Answer Sheets — {activeClassId?.replace('_', ' ').toUpperCase()} (source: demo)
+                  </span>
+                  <button onClick={() => setShowDemoPanel(false)} className="text-gray-500 hover:text-white">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                {demoImages.length === 0 ? (
+                  <p className="text-xs text-gray-500 text-center py-2">
+                    No demo images found. Run "Seed Demo Data" from the main dashboard first.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {demoImages.map((img) => (
+                      <button
+                        key={img.filename}
+                        onClick={() => scanDemoImage(img.filename)}
+                        disabled={!img.exists}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all text-xs ${
+                          img.exists
+                            ? 'bg-slate-800/80 hover:bg-slate-800 text-gray-200 hover:text-white'
+                            : 'bg-slate-900/50 text-gray-600 cursor-not-allowed'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${img.exists ? 'bg-emerald-400' : 'bg-gray-600'}`} />
+                        <span className="font-mono truncate">{img.filename}</span>
+                        <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">DEMO</span>
+                        {!img.exists && <span className="text-rose-400 shrink-0">(missing)</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {diagnosisResult && (
+              <div className={`p-3.5 rounded-xl border text-xs space-y-2 animate-banner ${
+                isPipelineError
+                  ? 'bg-rose-950/30 border-rose-500/40'
+                  : 'bg-purple-950/40 border-purple-500/40'
+              }`}>
+                <div className="font-bold flex items-center justify-between">
+                  <span className={isPipelineError ? 'text-rose-300' : 'text-purple-300'}>
+                    {isPipelineError ? '⚠ AI Pipeline Error' : '✓ Answer Sheet Diagnosis'}
+                  </span>
+                  {!isPipelineError && (
+                    <span className="text-emerald-400 font-extrabold">{Math.round(diagnosisResult.overall_score * 100)}% Score</span>
+                  )}
+                </div>
+
+                {providerUsed && !isPipelineError && (
+                  <div className="text-[11px] text-gray-400">
+                    Provider: <span className="text-indigo-300 font-semibold">{providerUsed}</span> |
+                    Topic: <span className="text-purple-300 font-semibold">{diagnosisResult.detected_topic}</span> |
+                    Fallback Fired: <span className="text-emerald-400 font-bold">False ✓</span>
+                  </div>
+                )}
+
+                <p className={`italic ${isPipelineError ? 'text-rose-300' : 'text-gray-300'}`}>
+                  {diagnosisResult.diagnostic_summary}
+                </p>
+
+                {!isPipelineError && diagnosisResult.weak_question_types?.length > 0 && (
+                  <div className="pt-1 text-[11px] font-semibold text-rose-300">
+                    Weak Types: {diagnosisResult.weak_question_types.join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {pipelineLogs.length > 0 && (
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono max-h-32 overflow-y-auto">
+                <div className="flex items-center gap-2 mb-2">
+                  <Terminal className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">AI Pipeline Logs</span>
+                </div>
+                {pipelineLogs.map((log, i) => (
+                  <div key={i} className="flex items-start gap-2 text-[11px]">
+                    <span className="text-gray-600 shrink-0 w-20">{log.ts}</span>
+                    <span className={`${
+                      log.type === 'success' ? 'text-emerald-400' :
+                      log.type === 'error' ? 'text-rose-400' :
+                      'text-blue-400'
+                    } break-all leading-relaxed`}>{log.msg}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Reset status banner */}
         {resetMessage && (
           <div className="mt-3 p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
@@ -1215,7 +1679,7 @@ Limits & Continuity, 19, 20, ${new Date().toISOString().split('T')[0]}`;
           </div>
         )}
 
-        {/* Collapsible Performance Log (Live vs Demo Separation Audit) */}
+        {/* Collapsible Performance Log */}
         {showRecordsLog && (
           <div className="mt-4 pt-3 border-t border-slate-800/80 animate-banner">
             <div className="flex items-center justify-between mb-2">
