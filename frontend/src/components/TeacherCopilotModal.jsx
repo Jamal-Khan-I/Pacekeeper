@@ -200,7 +200,7 @@ export default function TeacherCopilotModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || activeTier === 'free') return null;
 
   return (
     <div className={`fixed z-50 transition-all duration-300 ${
@@ -223,13 +223,11 @@ export default function TeacherCopilotModal({
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
                 </h3>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border ${
-                  activeTier === 'free'
-                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                    : activeTier === 'local'
+                  activeTier === 'local'
                     ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
                     : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                 }`}>
-                  {activeTier === 'free' ? 'Rule-Based' : activeTier === 'local' ? 'Local Ollama' : 'Cloud AI'}
+                  {activeTier === 'local' ? 'Local Ollama' : 'Cloud AI'}
                 </span>
               </div>
               <p className="text-[11px] text-gray-400">Multimodal Assistant for Classroom Pacing</p>
@@ -268,32 +266,7 @@ export default function TeacherCopilotModal({
           </div>
         </div>
 
-        {/* If Free Tier: Show Gated Screen */}
-        {activeTier === 'free' ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/90">
-            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-4 shadow-xl shadow-amber-500/10">
-              <Lock className="w-8 h-8 text-amber-400" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 mb-3">
-              Feature Gated to Local & Cloud AI
-            </span>
-            <h4 className="text-base font-extrabold text-white mb-2">Teacher Copilot AI is Not Available in Free Tier</h4>
-            <p className="text-xs text-gray-400 max-w-sm mb-6 leading-relaxed">
-              The <strong>Free Tier</strong> runs exclusively on deterministic mathematical algorithms (Ebbinghaus forgetting curve & knapsack planner).
-              <br /><br />
-              To chat with the multimodal AI, dictate voice commands, analyze student test sheets, and auto-reschedule timetables, switch to <strong>Local LLM (Ollama)</strong> or <strong>Cloud Tier (Gemini/OpenAI)</strong>.
-            </p>
-            <button
-              onClick={onOpenSettings}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-purple-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white font-bold text-xs shadow-xl shadow-purple-950/60 transition transform hover:scale-[1.02]"
-            >
-              <span>Configure Local LLM or Cloud API in Settings</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Chat Message Stream */}
+        {/* Chat Message Stream */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
           {messages.map((m) => (
             <div
@@ -480,8 +453,6 @@ export default function TeacherCopilotModal({
             </button>
           </form>
         </div>
-          </>
-        )}
 
       </div>
     </div>

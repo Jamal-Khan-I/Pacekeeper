@@ -236,6 +236,7 @@ export default function App() {
         setActiveTier={handleTierChange}
         hardwareInfo={hardwareInfo}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenCopilot={() => setIsCopilotOpen(true)}
       />
 
       <main className="max-w-7xl mx-auto px-6 flex-1 w-full">
@@ -273,21 +274,8 @@ export default function App() {
               {seeding ? 'Seeding...' : 'Seed Demo Data'}
             </button>
 
-            {/* Teacher Copilot Launch Button: Exclusive to Local LLM & Cloud Tiers */}
-            {activeTier === 'free' ? (
-              <button
-                onClick={() => setIsSettingsModalOpen(true)}
-                id="teacher-copilot-btn"
-                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-900/90 hover:bg-slate-800 text-gray-400 border border-slate-800 hover:border-amber-500/40 transition-all group"
-                title="Teacher Copilot AI requires Local LLM (Ollama) or Cloud Tier. Click to configure in Settings."
-              >
-                <Lock className="w-3.5 h-3.5 text-gray-500 group-hover:text-amber-400 transition-colors" />
-                <span className="text-gray-300">Teacher Copilot</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-amber-400/90 border border-amber-500/30 font-medium">
-                  Local / Cloud Only
-                </span>
-              </button>
-            ) : (
+            {/* Teacher Copilot Launch Button: ONLY for Local LLM & Cloud Tiers */}
+            {activeTier !== 'free' && (
               <button
                 onClick={() => setIsCopilotOpen(true)}
                 id="teacher-copilot-btn"

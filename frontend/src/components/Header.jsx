@@ -1,7 +1,7 @@
 import React from 'react';
 import { Cpu, Zap, Bot, Cloud, CheckCircle2, Sparkles, Settings } from 'lucide-react';
 
-export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpenSettings }) {
+export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpenSettings, onOpenCopilot }) {
   const handleSelectCloud = () => {
     setActiveTier('cloud');
     const hasKey = localStorage.getItem('pk_gemini_key') || localStorage.getItem('pk_groq_key');
@@ -66,7 +66,7 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
             >
               <Bot className="w-3.5 h-3.5" />
               <span>Local Agent</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Phase 4</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Copilot AI</span>
             </button>
 
             {/* Cloud Agent */}
@@ -80,7 +80,7 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
             >
               <Cloud className="w-3.5 h-3.5" />
               <span>Cloud Agent</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Phase 5 Active</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">Copilot AI</span>
             </button>
           </div>
 
@@ -113,9 +113,18 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400 shrink-0 animate-pulse" />
             <span>
-              <strong>Local Agent Active (Phase 4 - Gemma 4 & LangGraph):</strong> Multimodal vision diagnosis for student answer sheet scans, automated syllabus document ingestion, and offline Voice TTS explanations fully active.
+              <strong>Local Agent Active (Phase 4 - Ollama & LangGraph):</strong> Multimodal Teacher Copilot with voice speech, vision diagnosis for student exam sheets, and automated rescheduling.
             </span>
           </div>
+          {onOpenCopilot && (
+            <button
+              onClick={onOpenCopilot}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-950/50 transition ml-3 shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+              <span>Launch Copilot</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -124,15 +133,26 @@ export default function Header({ activeTier, setActiveTier, hardwareInfo, onOpen
           <div className="flex items-center gap-2">
             <Cloud className="w-4 h-4 text-blue-400 shrink-0" />
             <span>
-              <strong>Cloud Agent Active (Phase 5 - Gemini 1.5 & Groq Swapped):</strong> Swappable cloud LLM provider active. All answer sheet diagnoses, document ingestion, and LangGraph reasoning dynamically route through your selected Cloud API.
+              <strong>Cloud Agent Active (Phase 5 - Gemini 1.5 & Groq):</strong> Full Multimodal Teacher Copilot with cloud vision, speech synthesis, and autonomous timetable tool execution.
             </span>
           </div>
-          <button
-            onClick={onOpenSettings}
-            className="text-[11px] font-bold text-blue-300 hover:text-white underline ml-3 shrink-0"
-          >
-            Configure Keys & Models →
-          </button>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            {onOpenCopilot && (
+              <button
+                onClick={onOpenCopilot}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-950/50 transition"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                <span>Launch Copilot</span>
+              </button>
+            )}
+            <button
+              onClick={onOpenSettings}
+              className="text-[11px] font-bold text-blue-300 hover:text-white underline"
+            >
+              Keys & Models →
+            </button>
+          </div>
         </div>
       )}
     </header>
