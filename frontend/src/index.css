@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @layer base {
   :root, [data-theme="dark"] {
@@ -243,30 +243,46 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 [data-theme="dark"] header .backdrop-blur-xl .bg-slate-950\/70 { background: #070707 !important; border: 1px solid rgba(212,175,55,0.2) !important; }
 
-/* Universal dark typography */
-[data-theme="dark"] * { color: #ffffff; }
+/* Dark Mode Typography — targeted overrides only (no * universal selector) */
+/* Body inherits #ffffff via --text-primary; overrides handle Tailwind utility classes */
 [data-theme="dark"] h1,[data-theme="dark"] h2,[data-theme="dark"] h3,
 [data-theme="dark"] h4,[data-theme="dark"] h5,[data-theme="dark"] h6 { color: #ffffff !important; }
-[data-theme="dark"] p,[data-theme="dark"] span,[data-theme="dark"] label,
+[data-theme="dark"] p,[data-theme="dark"] label,
 [data-theme="dark"] td,[data-theme="dark"] th,[data-theme="dark"] li,
-[data-theme="dark"] a,[data-theme="dark"] strong,[data-theme="dark"] b,
+[data-theme="dark"] strong,[data-theme="dark"] b,
 [data-theme="dark"] small,[data-theme="dark"] em,[data-theme="dark"] code { color: #ffffff !important; }
-[data-theme="dark"] .text-white,[data-theme="dark"] .text-gray-100,[data-theme="dark"] .text-gray-200,
-[data-theme="dark"] .text-gray-300,[data-theme="dark"] .text-gray-400,[data-theme="dark"] .text-gray-500,
-[data-theme="dark"] .text-gray-600,[data-theme="dark"] .text-slate-100,[data-theme="dark"] .text-slate-200,
-[data-theme="dark"] .text-slate-300,[data-theme="dark"] .text-slate-400,[data-theme="dark"] .text-slate-500,
-[data-theme="dark"] .text-slate-600,[data-theme="dark"] .text-zinc-400,[data-theme="dark"] .text-zinc-300 { color: #e8e8e8 !important; }
+/* Tailwind text utility overrides for dark mode */
+[data-theme="dark"] .text-white { color: #ffffff !important; }
+[data-theme="dark"] .text-gray-100,[data-theme="dark"] .text-gray-200 { color: #f5f5f5 !important; }
+[data-theme="dark"] .text-gray-300,[data-theme="dark"] .text-gray-400,
+[data-theme="dark"] .text-gray-500,[data-theme="dark"] .text-gray-600 { color: #e8e8e8 !important; }
+[data-theme="dark"] .text-slate-100,[data-theme="dark"] .text-slate-200 { color: #f0f0f0 !important; }
+[data-theme="dark"] .text-slate-300,[data-theme="dark"] .text-slate-400,
+[data-theme="dark"] .text-slate-500,[data-theme="dark"] .text-slate-600 { color: #d8d8d8 !important; }
+[data-theme="dark"] .text-zinc-400,[data-theme="dark"] .text-zinc-300 { color: #d8d8d8 !important; }
+/* Royal Gold for indigo/purple/blue text */
 [data-theme="dark"] .text-indigo-300,[data-theme="dark"] .text-indigo-400,
 [data-theme="dark"] .text-purple-300,[data-theme="dark"] .text-purple-400,
 [data-theme="dark"] .text-blue-300,[data-theme="dark"] .text-blue-400 { color: #f0cc5f !important; }
+/* Royal Gold for emerald/green text */
 [data-theme="dark"] .text-emerald-400,[data-theme="dark"] .text-emerald-300,
 [data-theme="dark"] .text-green-400 { color: #d4af37 !important; }
+/* Status colors */
 [data-theme="dark"] .text-rose-400,[data-theme="dark"] .text-rose-300,
-[data-theme="dark"] .text-red-400 { color: #e05555 !important; }
-[data-theme="dark"] .text-amber-400,[data-theme="dark"] .text-amber-300 { color: #f59e0b !important; }
+[data-theme="dark"] .text-red-400 { color: #f87171 !important; }
+/* Amber/yellow stays golden */
+[data-theme="dark"] .text-amber-400,[data-theme="dark"] .text-amber-300 { color: #fbbf24 !important; }
+[data-theme="dark"] .text-yellow-100,[data-theme="dark"] .text-yellow-200 { color: #fef9c3 !important; }
+[data-theme="dark"] .text-yellow-300,[data-theme="dark"] .text-yellow-400 { color: #fde047 !important; }
+[data-theme="dark"] .text-pink-300,[data-theme="dark"] .text-pink-400 { color: #f9a8d4 !important; }
+/* ⚠️ Protect Settings modal: text-slate-700/900 must stay dark for light-bg buttons */
+/* These classes appear on the White Mode theme option button (light bg needs dark text) */
+/* Do NOT override text-slate-700 or text-slate-900 in dark mode */
+/* Named class overrides */
 [data-theme="dark"] .session-topic-name { color: #ffffff !important; }
 [data-theme="dark"] .class-hero-title { color: #ffffff !important; }
-[data-theme="dark"] button { color: #ffffff !important; }
+/* Spans used as text containers — but NOT span in buttons with explicit bg */
+[data-theme="dark"] span:not([class*="bg-"]) { color: inherit; }
 
 [data-theme="dark"] ::-webkit-scrollbar-track { background: #050505; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#a07c20,#6b5215) !important; border-radius: 4px; }
@@ -308,13 +324,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="cyber"] .glass-input,[data-theme="cyber"] input:not([type="range"]),[data-theme="cyber"] textarea,[data-theme="cyber"] select { background: #020e06 !important; border: 2px solid rgba(0,255,136,0.5) !important; color: #ffffff !important; color-scheme: dark !important; }
 [data-theme="cyber"] input:focus,[data-theme="cyber"] textarea:focus,[data-theme="cyber"] select:focus { border-color: #00ff88 !important; box-shadow: 0 0 0 3px rgba(0,255,136,0.2) !important; }
 [data-theme="cyber"] select option { background-color: #041008 !important; color: #ffffff !important; }
-[data-theme="cyber"] * { color: #ffffff; }
+/* Cyber Mode Typography — targeted only */
 [data-theme="cyber"] h1,[data-theme="cyber"] h2,[data-theme="cyber"] h3,[data-theme="cyber"] h4,
-[data-theme="cyber"] h5,[data-theme="cyber"] h6,[data-theme="cyber"] p,[data-theme="cyber"] span,
+[data-theme="cyber"] h5,[data-theme="cyber"] h6,[data-theme="cyber"] p,
 [data-theme="cyber"] label,[data-theme="cyber"] td,[data-theme="cyber"] th,[data-theme="cyber"] strong,
-[data-theme="cyber"] b,[data-theme="cyber"] button,[data-theme="cyber"] .text-gray-400,
-[data-theme="cyber"] .text-gray-500,[data-theme="cyber"] .text-gray-300,
-[data-theme="cyber"] .text-slate-400,[data-theme="cyber"] .text-slate-300,[data-theme="cyber"] .text-white { color: #ffffff !important; }
+[data-theme="cyber"] b,[data-theme="cyber"] small,[data-theme="cyber"] em { color: #ffffff !important; }
+[data-theme="cyber"] .text-white,[data-theme="cyber"] .text-gray-400,
+[data-theme="cyber"] .text-gray-500,[data-theme="cyber"] .text-gray-300,[data-theme="cyber"] .text-gray-200,
+[data-theme="cyber"] .text-slate-400,[data-theme="cyber"] .text-slate-300,[data-theme="cyber"] .text-slate-200 { color: #ffffff !important; }
 [data-theme="cyber"] .text-indigo-400,[data-theme="cyber"] .text-indigo-300,
 [data-theme="cyber"] .text-purple-400,[data-theme="cyber"] .text-purple-300,
 [data-theme="cyber"] .text-blue-400,[data-theme="cyber"] .text-blue-300,

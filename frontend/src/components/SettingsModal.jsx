@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Settings, Cloud, Key, CheckCircle2, AlertCircle, Eye, EyeOff,
   Loader2, X, Sparkles, Cpu, Globe, Palette, Moon, Sun, Terminal, Check
@@ -9,31 +9,31 @@ const THEME_OPTIONS = [
   {
     id: 'dark',
     name: 'Dark Mode',
-    subtitle: 'Royal Emerald & Onyx Black with pure white letters',
-    tag: 'Royal Emerald',
+    subtitle: 'Royal Obsidian - Black + Gold + Silver',
+    tag: 'Royal Gold',
     icon: Moon,
-    activeBorder: 'border-emerald-400 shadow-lg shadow-emerald-500/30 bg-[#061a0c] text-white ring-2 ring-emerald-500/60',
-    inactiveBorder: 'border-emerald-950 bg-black text-gray-300 hover:border-emerald-800',
-    swatches: ['#000000', '#061a0c', '#10b981', '#ffffff']
+    activeBorder: 'border-yellow-600 shadow-lg shadow-yellow-500/20 bg-[#111111] text-white ring-2 ring-yellow-500/40',
+    inactiveBorder: 'border-yellow-900 bg-[#0a0a0a] text-yellow-100 hover:border-yellow-700',
+    swatches: ['#0a0a0a', '#111111', '#d4af37', '#c0c0c0']
   },
   {
     id: 'cyber',
     name: 'Cyber Mode',
-    subtitle: 'Matrix high-tech neon green & dark green',
-    tag: 'Matrix Green',
+    subtitle: 'Matrix high-tech neon green and dark green',
+    tag: 'Neon Matrix',
     icon: Terminal,
-    activeBorder: 'border-[#00ff88] shadow-lg shadow-[#00ff88]/30 bg-[#062413] text-[#00ff88] ring-2 ring-[#00ff88]/60',
-    inactiveBorder: 'border-emerald-950 bg-[#020904] text-gray-300 hover:border-emerald-800',
+    activeBorder: 'border-green-400 shadow-lg shadow-green-400/20 bg-[#062413] text-green-300 ring-2 ring-green-400/40',
+    inactiveBorder: 'border-green-900 bg-[#020904] text-green-200 hover:border-green-600',
     swatches: ['#020904', '#062413', '#00ff88', '#ffffff']
   },
   {
     id: 'light',
     name: 'White Mode',
-    subtitle: 'Cool slate canvas with crisp white panels & black text',
+    subtitle: 'Cool slate canvas with crisp white panels and black text',
     tag: 'Clean Light',
     icon: Sun,
-    activeBorder: 'border-blue-600 shadow-lg shadow-blue-500/20 bg-blue-50 text-black ring-2 ring-blue-500/40',
-    inactiveBorder: 'border-slate-300 bg-slate-100 text-gray-700 hover:border-slate-400',
+    activeBorder: 'border-blue-500 shadow-lg shadow-blue-400/20 bg-blue-50 text-slate-900 ring-2 ring-blue-400/40',
+    inactiveBorder: 'border-slate-400 bg-white text-slate-700 hover:border-blue-400',
     swatches: ['#e2e8f0', '#ffffff', '#94a3b8', '#000000']
   }
 ];
@@ -328,3 +328,4 @@ export default function SettingsModal({
     </div>
   );
 }
+
