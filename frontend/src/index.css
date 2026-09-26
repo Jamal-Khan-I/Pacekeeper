@@ -344,8 +344,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Named class overrides */
 [data-theme="dark"] .session-topic-name { color: #ffffff !important; }
 [data-theme="dark"] .class-hero-title { color: #ffffff !important; }
-/* Spans used as text containers — but NOT span in buttons with explicit bg */
-[data-theme="dark"] span:not([class*="bg-"]) { color: inherit; }
 
 [data-theme="dark"] ::-webkit-scrollbar-track { background: #050505; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#a07c20,#6b5215) !important; border-radius: 4px; }
@@ -444,14 +442,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="light"] h5,[data-theme="light"] h6,[data-theme="light"] p,[data-theme="light"] label,
 [data-theme="light"] td,[data-theme="light"] th,[data-theme="light"] strong,[data-theme="light"] b,
 [data-theme="light"] small { color: #000000 !important; }
-[data-theme="light"] span:not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="bg-indigo"]):not([class*="bg-purple"]):not([class*="bg-blue"]):not([class*="bg-pink"]) { color: #000000 !important; }
+
 [data-theme="light"] .text-white,[data-theme="light"] .text-gray-100,[data-theme="light"] .text-gray-200,
 [data-theme="light"] .text-gray-300,[data-theme="light"] .text-gray-400,[data-theme="light"] .text-gray-500,
 [data-theme="light"] .text-slate-200,[data-theme="light"] .text-slate-300,[data-theme="light"] .text-slate-400,
 [data-theme="light"] .text-slate-500,[data-theme="light"] .text-slate-600 { color: #000000 !important; }
 [data-theme="light"] .session-topic-name,[data-theme="light"] .class-hero-title { color: #000000 !important; }
 [data-theme="light"] button[class*="bg-gradient-"],[data-theme="light"] button[class*="bg-gradient-"] * { color: #ffffff !important; }
-[data-theme="light"] button:not([class*="bg-gradient-"]):not([class*="bg-indigo-6"]):not([class*="bg-blue-6"]):not([class*="bg-purple-6"]):not([class*="bg-rose-6"]):not([class*="bg-pink-6"]) { color: #000000 !important; }
+/* Exclude theme-opt buttons so Dark/Cyber option buttons keep their own legible text when Light Mode is active */
+[data-theme="light"] button:not([class*="bg-gradient-"]):not([class*="bg-indigo-6"]):not([class*="bg-blue-6"]):not([class*="bg-purple-6"]):not([class*="bg-rose-6"]):not([class*="bg-pink-6"]):not([class*="theme-opt-"]) { color: #000000 !important; }
 [data-theme="light"] ::-webkit-scrollbar-track { background: #e2e8f0; }
 [data-theme="light"] ::-webkit-scrollbar-thumb { background: #94a3b8 !important; border-radius: 4px; }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #64748b !important; }
