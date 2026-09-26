@@ -67,6 +67,69 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ============================================================
+   SETTINGS MODAL — THEME OPTION BUTTONS CONTRAST FIX
+   Each button must show legible text regardless of the active
+   global theme. We target .theme-opt-{id} with !important to
+   override any theme-level p/span/h* colour overrides.
+   ============================================================ */
+
+/* .theme-opt-light  has a LIGHT background (bg-blue-50/white)
+   → needs DARK text in dark & cyber mode */
+[data-theme="dark"]  .theme-opt-light,
+[data-theme="dark"]  .theme-opt-light p,
+[data-theme="dark"]  .theme-opt-light span,
+[data-theme="dark"]  .theme-opt-light div,
+[data-theme="dark"]  .theme-opt-light label,
+[data-theme="dark"]  .theme-opt-light small { color: #1e293b !important; }
+
+[data-theme="cyber"] .theme-opt-light,
+[data-theme="cyber"] .theme-opt-light p,
+[data-theme="cyber"] .theme-opt-light span,
+[data-theme="cyber"] .theme-opt-light div,
+[data-theme="cyber"] .theme-opt-light label,
+[data-theme="cyber"] .theme-opt-light small { color: #1e293b !important; }
+
+/* .theme-opt-dark  has a BLACK background
+   → needs LIGHT (gold/cream) text in light & cyber mode */
+[data-theme="light"] .theme-opt-dark,
+[data-theme="light"] .theme-opt-dark p,
+[data-theme="light"] .theme-opt-dark span,
+[data-theme="light"] .theme-opt-dark div,
+[data-theme="light"] .theme-opt-dark label,
+[data-theme="light"] .theme-opt-dark small { color: #fef9c3 !important; }
+
+[data-theme="cyber"] .theme-opt-dark,
+[data-theme="cyber"] .theme-opt-dark p,
+[data-theme="cyber"] .theme-opt-dark span,
+[data-theme="cyber"] .theme-opt-dark div,
+[data-theme="cyber"] .theme-opt-dark label,
+[data-theme="cyber"] .theme-opt-dark small { color: #fef9c3 !important; }
+
+/* .theme-opt-cyber  has a DARK GREEN background
+   → needs GREEN text in light & dark mode */
+[data-theme="light"] .theme-opt-cyber,
+[data-theme="light"] .theme-opt-cyber p,
+[data-theme="light"] .theme-opt-cyber span,
+[data-theme="light"] .theme-opt-cyber div,
+[data-theme="light"] .theme-opt-cyber label,
+[data-theme="light"] .theme-opt-cyber small { color: #86efac !important; }
+
+[data-theme="dark"]  .theme-opt-cyber,
+[data-theme="dark"]  .theme-opt-cyber p,
+[data-theme="dark"]  .theme-opt-cyber span,
+[data-theme="dark"]  .theme-opt-cyber div,
+[data-theme="dark"]  .theme-opt-cyber label,
+[data-theme="dark"]  .theme-opt-cyber small { color: #86efac !important; }
+
+/* Also protect SVG icons inside each button */
+[data-theme="light"] .theme-opt-dark  svg { color: #fef9c3 !important; }
+[data-theme="light"] .theme-opt-cyber svg { color: #86efac  !important; }
+[data-theme="dark"]  .theme-opt-light svg { color: #1e293b  !important; }
+[data-theme="dark"]  .theme-opt-cyber svg { color: #86efac  !important; }
+[data-theme="cyber"] .theme-opt-light svg { color: #1e293b  !important; }
+[data-theme="cyber"] .theme-opt-dark  svg { color: #fef9c3  !important; }
+
+/* ============================================================
    DARK MODE — ROYAL OBSIDIAN (Black + Gold + Silver)
    ============================================================ */
 [data-theme="dark"] body,

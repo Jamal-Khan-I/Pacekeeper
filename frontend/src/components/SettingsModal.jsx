@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings, Cloud, Key, CheckCircle2, AlertCircle, Eye, EyeOff,
   Loader2, X, Sparkles, Cpu, Globe, Palette, Moon, Sun, Terminal, Check
@@ -167,7 +167,7 @@ export default function SettingsModal({
                         onThemeChange(t.id);
                       }
                     }}
-                    className={`p-3 rounded-xl border text-left transition-all duration-200 relative flex flex-col justify-between ${
+                    className={`theme-opt-${t.id} p-3 rounded-xl border text-left transition-all duration-200 relative flex flex-col justify-between ${
                       isSelected ? t.activeBorder : t.inactiveBorder
                     }`}
                   >
