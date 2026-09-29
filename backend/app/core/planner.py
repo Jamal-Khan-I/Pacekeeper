@@ -5,7 +5,7 @@ adaptive weighting, and calendar disruption re-planning.
 """
 
 from datetime import date, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import copy
 
 from backend.app.core.schemas import (

@@ -1,6 +1,11 @@
 # Detached Server Launcher for Pacekeeper (Windows PowerShell)
 $projectRoot = $PSScriptRoot
-$pythonExe = "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\python.exe"
+$pythonExe = "python"
+if (Test-Path "$projectRoot\.venv\Scripts\python.exe") {
+    $pythonExe = "$projectRoot\.venv\Scripts\python.exe"
+} elseif (Test-Path "E:\Antigravity IDE\pacekeeper\pacekeeper\.venv\Scripts\python.exe") {
+    $pythonExe = "E:\Antigravity IDE\pacekeeper\pacekeeper\.venv\Scripts\python.exe"
+}
 
 # Kill any existing processes on 8000 / 5173
 $p8000 = Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique

@@ -4,7 +4,7 @@ API Router for Schedule Generation & State Retrieval.
 
 import json
 from datetime import datetime, date, timezone
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
